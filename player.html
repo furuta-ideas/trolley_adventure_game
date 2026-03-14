@@ -158,9 +158,9 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;hei
   <div class="complete-title-sm">ゲーム終了！</div>
   <div class="score-box">
     <div class="score-big" id="final-score">0</div>
-    <div class="score-lbl">/ 6問 回答</div>
+    <div class="score-lbl" id="score-lbl">/ 6問 正解</div>
   </div>
-  <div class="perfect-msg" id="perfect-msg">🌟 全問回答しました！ 🌟</div>
+  <div class="perfect-msg" id="perfect-msg">🌟 全問正解！ 🌟</div>
 </div>
 
 <script>
@@ -171,6 +171,7 @@ const TOTAL_Q=6;
 let myId=null, myName='', myAnswers=[], currentQ=0;
 let currentLeft='', currentRight='';
 let answering=false;  // ★ 回答受付中フラグ（question & race両フェーズで true）
+let correctCount=0;  // 正解数カウント
 let audioCtx=null;
 let gameChannel=null;
 
@@ -248,6 +249,7 @@ function initPlayerState(){
   currentLeft=''; currentRight='';
   myAnswers=Array(TOTAL_Q).fill(null);
   answering=false;
+  correctCount=0;
 
   // DOM リセット
   document.getElementById('btn-left').disabled=false;
@@ -332,6 +334,7 @@ function showResult(correct){
   answering=false;
   const myChoice=myAnswers[currentQ];
   const ok=myChoice===correct;
+  if(ok) correctCount++;
   const screen=document.getElementById('screen-result');
   screen.className=ok?'result-correct':'result-wrong';
   document.getElementById('result-mark').textContent=ok?'⚪':'✕';
@@ -343,15 +346,15 @@ function showResult(correct){
 }
 
 function showCompleteScreen(){
-  const answered=myAnswers.filter(a=>a!==null&&a!==undefined).length;
-  document.getElementById('final-score').textContent=answered;
-  if(answered===TOTAL_Q){
+  document.getElementById('final-score').textContent=correctCount;
+  document.getElementById('score-lbl').textContent=`/ ${TOTAL_Q}問 正解`;
+  if(correctCount===TOTAL_Q){
     document.getElementById('perfect-msg').style.display='block';
     document.getElementById('complete-icon').textContent='🏆';
     spawnSmallConfetti();
   }else{
     document.getElementById('perfect-msg').style.display='none';
-    document.getElementById('complete-icon').textContent=answered>=4?'🎖️':'🎮';
+    document.getElementById('complete-icon').textContent=correctCount>=4?'🎖️':'🎮';
   }
   showScreen('complete');
 }

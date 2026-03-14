@@ -44,10 +44,10 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .choice-text{font-weight:900;font-size:clamp(2rem,3.8vw,3.8rem);text-shadow:2px 2px 4px rgba(0,0,0,.8),0 0 20px rgba(0,0,0,.5);line-height:1.2;color:#fff;}
 .choice-arrow-l,.choice-arrow-r{display:none;}
 .trolley-idle{display:none;}
-.choice-names{position:absolute;bottom:5%;left:5%;right:5%;display:flex;flex-wrap:wrap;gap:5px;z-index:10;pointer-events:none;}
+.choice-names{position:absolute;top:5%;left:5%;right:5%;display:flex;flex-wrap:wrap;gap:5px;z-index:10;pointer-events:none;}
 .choice-names-left{justify-content:flex-start;}
 .choice-names-right{justify-content:flex-end;}
-.choice-name-chip{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 16px;border-radius:18px;font-size:1.5rem;font-weight:700;animation:chipIn .3s ease;backdrop-filter:blur(4px);}
+.choice-name-chip{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;padding:8px 20px;border-radius:20px;font-size:3rem;font-weight:700;animation:chipIn .3s ease;backdrop-filter:blur(4px);}
 .answer-count{position:absolute;bottom:18px;right:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:9px 18px;font-size:1rem;z-index:10;}
 .start-race-btn{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.25rem;padding:14px 46px;border-radius:50px;cursor:pointer;letter-spacing:3px;box-shadow:0 8px 40px rgba(255,165,0,.6);z-index:10;animation:pulse-b 2s infinite;transition:transform .1s;}
 .start-race-btn:hover{transform:translateX(-50%) scale(1.05);}
@@ -68,6 +68,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 #screen-answer{display:none;height:100vh;position:relative;overflow:hidden;background:#0A0A1A;}
 .answer-left{position:absolute;left:0;top:0;width:50%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#081a6e,#1540b8);border-right:4px solid rgba(255,255,255,.08);transition:all .5s;}
 .answer-right{position:absolute;right:0;top:0;width:50%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(225deg,#6e0808,#b81515);transition:all .5s;}
+.answer-names{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px;max-width:90%;padding:0 8px;}
+.answer-name-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 16px;border-radius:18px;font-size:1.4rem;font-weight:700;animation:chipIn .3s ease;}
 .answer-choice-label{font-size:1.1rem;opacity:.65;letter-spacing:3px;margin-bottom:14px;}
 .answer-choice-text{font-size:clamp(2.4rem,4.8vw,5rem);font-weight:900;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
 .answer-btn{margin-top:28px;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.5);color:#fff;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1rem;padding:12px 32px;border-radius:50px;cursor:pointer;letter-spacing:2px;transition:all .2s;backdrop-filter:blur(4px);}
@@ -84,7 +86,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .next-btn:hover{transform:scale(1.05);}
 
 /* ── COMPLETE ── */
-#screen-complete{display:none;height:100vh;background:radial-gradient(ellipse at center,#1a0a40 0%,#0A0A1A 70%);position:relative;overflow:hidden;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+#screen-complete{display:none;height:100vh;position:relative;overflow:hidden;background:#0A0A1A;}
+#screen-complete img{width:100%;height:100%;object-fit:contain;object-position:center;}
 .firework{position:absolute;width:10px;height:10px;border-radius:50%;animation:fw 1.5s ease-out forwards;}
 @keyframes fw{0%{transform:scale(0);opacity:1}50%{transform:scale(3);opacity:.8}100%{transform:scale(8);opacity:0}}
 .confetti-piece{position:absolute;opacity:0;animation:cf linear forwards;}
@@ -178,11 +181,13 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   <div class="answer-left" id="answer-left-panel">
     <div class="answer-choice-label">◀ ひだり</div>
     <div class="answer-choice-text" id="answer-left-text">左</div>
+    <div class="answer-names" id="answer-left-names"></div>
     <button class="answer-btn" onclick="judgeAnswer('left')" id="btn-judge-left">✅ これが正解！</button>
   </div>
   <div class="answer-right" id="answer-right-panel">
     <div class="answer-choice-label">みぎ ▶</div>
     <div class="answer-choice-text" id="answer-right-text">右</div>
+    <div class="answer-names" id="answer-right-names"></div>
     <button class="answer-btn" onclick="judgeAnswer('right')" id="btn-judge-right">✅ これが正解！</button>
   </div>
   <div class="answer-divider">
@@ -195,11 +200,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 
 <!-- COMPLETE -->
 <div id="screen-complete">
-  <span class="complete-star">⭐</span>
-  <div class="complete-title">全問正解<br>コンプリート！</div>
-  <div class="complete-sub">🏆 PERFECT SCORE 🏆</div>
-  <div class="perfect-names" id="perfect-names"></div>
-  <button class="restart-btn" onclick="restartGame()">🔄 もう一度遊ぶ</button>
+  <img src="ending.png" alt="エンディング">
 </div>
 
 <script>
@@ -303,6 +304,8 @@ function updateChoiceNames(){
   });
   document.getElementById('choice-left-names').innerHTML=leftNames.map(n=>`<span class="choice-name-chip">${n}</span>`).join('');
   document.getElementById('choice-right-names').innerHTML=rightNames.map(n=>`<span class="choice-name-chip">${n}</span>`).join('');
+  document.getElementById('answer-left-names').innerHTML=leftNames.map(n=>`<span class="answer-name-chip">${n}</span>`).join('');
+  document.getElementById('answer-right-names').innerHTML=rightNames.map(n=>`<span class="answer-name-chip">${n}</span>`).join('');
 }
 
 // ══════════════════════════════════════════
@@ -359,6 +362,8 @@ function loadQuestion(){
   document.getElementById('race-ans-count').textContent='📱 0人 回答済み';
   document.getElementById('choice-left-names').innerHTML='';
   document.getElementById('choice-right-names').innerHTML='';
+  document.getElementById('answer-left-names').innerHTML='';
+  document.getElementById('answer-right-names').innerHTML='';
 
   // アニメーションクラスを完全除去（前問の残骸）
   const lp=document.getElementById('answer-left-panel');
@@ -442,14 +447,6 @@ function nextQuestion(){
 function showComplete(){
   showScreen('complete');
   playBGM('fanfare');
-  spawnConfetti(); spawnFireworks();
-  const perfects=Object.entries(participants)
-    .filter(([,p])=>p.answers.every((a,i)=>a===QUESTIONS[i].answer))
-    .map(([,p])=>p.name);
-  const el=document.getElementById('perfect-names');
-  el.innerHTML=perfects.length>0
-    ?perfects.map(n=>`<span class="perfect-chip">⭐ ${n}</span>`).join('')
-    :'<span style="color:rgba(255,255,255,.45)">今回は全問正解者なし…次回チャレンジしよう！</span>';
   sendToPlayers({type:'complete'});
 }
 
