@@ -77,12 +77,32 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;hei
 .perfect-msg{color:#FFD700;font-weight:900;font-size:1.1rem;text-align:center;text-shadow:0 0 20px rgba(255,215,0,.7);display:none;}
 .confetti-sm{position:absolute;width:8px;height:12px;opacity:0;border-radius:2px;animation:fall-sm linear forwards;}
 @keyframes fall-sm{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(105dvh) rotate(540deg);opacity:0}}
+
+/* SPLASH */
+#screen-splash{position:fixed;inset:0;z-index:9999;background:#1a0a00;display:flex;align-items:center;justify-content:center;flex-direction:column;cursor:pointer;}
+#screen-splash img{width:100%;height:100%;object-fit:contain;object-position:center;background:#1a0a00;}
+.splash-fallback{display:none;text-align:center;padding:40px;}
+.splash-fallback-title{font-family:'Black Han Sans',sans-serif;font-size:clamp(1.8rem,7vw,3.5rem);background:linear-gradient(180deg,#FFD700 0%,#FF6B00 50%,#FF0000 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2;margin-bottom:16px;}
+.splash-fallback-sub{font-size:1rem;color:rgba(255,255,255,.6);letter-spacing:3px;margin-bottom:30px;}
+.splash-start-btn{background:radial-gradient(circle,#dd2222,#990000);color:#fff;font-weight:900;font-size:1.3rem;padding:16px 48px;border-radius:50px;border:3px solid rgba(255,255,255,.3);box-shadow:0 8px 30px rgba(200,0,0,.7);letter-spacing:5px;cursor:pointer;animation:splash-pulse 2s infinite;}
+@keyframes splash-pulse{0%,100%{box-shadow:0 8px 30px rgba(200,0,0,.6);transform:scale(1)}50%{box-shadow:0 8px 50px rgba(200,0,0,.9);transform:scale(1.05)}}
 </style>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 </head>
 <body>
 
+<!-- SPLASH -->
+<div id="screen-splash" onclick="exitSplash()">
+  <img src="splash.jpg" alt="トロッコ・アドベンチャー" onerror="this.style.display='none';document.querySelector('.splash-fallback').style.display='flex';">
+  <div class="splash-fallback" style="display:none;flex-direction:column;align-items:center;justify-content:center;height:100dvh;width:100vw;background:radial-gradient(ellipse at center,#2a1a00 0%,#1a0a00 70%);">
+    <div class="splash-fallback-title">阿藤＆糸島 感謝会記念<br>トロッコ・アドベンチャー</div>
+    <div class="splash-fallback-sub">— TROLLEY ADVENTURE —</div>
+    <button class="splash-start-btn" onclick="exitSplash();event.stopPropagation();">START</button>
+  </div>
+</div>
+
 <!-- JOIN -->
-<div id="screen-join">
+<div id="screen-join" style="display:none;">
   <div class="join-icon">🎮</div>
   <div class="join-title">阿藤さん＆糸島さん<br>トリビアバトル</div>
   <div class="join-sub">— 参加登録 —</div>
@@ -156,7 +176,7 @@ let gameChannel=null;
 
 try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleServerMsg(e.data); }catch(e){}
 
-// ★ localStorage polling（同一端末以外のクロス通信サポート）
+// ★ localStorage polling（同一端末フォールバック）
 let lastTs=0;
 setInterval(()=>{
   try{
@@ -166,6 +186,26 @@ setInterval(()=>{
     if(d.ts&&d.ts!==lastTs){lastTs=d.ts;handleServerMsg(d);}
   }catch(e){}
 },400);
+
+// ══════════════════════════════════════════
+//  PeerJS — クロスデバイス通信
+// ══════════════════════════════════════════
+let peerConn=null;
+function initPeerConnection(){
+  const params=new URLSearchParams(window.location.search);
+  const room=params.get('room');
+  if(!room)return;
+  try{
+    const peer=new Peer();
+    peer.on('open',()=>{
+      const conn=peer.connect('trolley-'+room);
+      conn.on('open',()=>{ peerConn=conn; console.log('PeerJS connected to monitor'); });
+      conn.on('data',(data)=>{ handleServerMsg(data); });
+      conn.on('close',()=>{ peerConn=null; });
+    });
+    peer.on('error',(err)=>{ console.warn('PeerJS error:',err); });
+  }catch(e){ console.warn('PeerJS unavailable:',e); }
+}
 
 function handleServerMsg(d){
   // ★ ゲーム初期化シグナル：player側を完全リセット
@@ -197,6 +237,7 @@ function handleServerMsg(d){
 
 function sendToHost(d){
   try{if(gameChannel)gameChannel.postMessage(d);}catch(e){}
+  try{if(peerConn)peerConn.send(d);}catch(e){}
 }
 
 // ══════════════════════════════════════════
@@ -224,14 +265,18 @@ function initPlayerState(){
   document.getElementById('screen-complete').querySelectorAll('.confetti-sm').forEach(e=>e.remove());
 }
 function showScreen(name){
-  ['join','waiting','answer','answered','result','complete'].forEach(s=>{
+  ['splash','join','waiting','answer','answered','result','complete'].forEach(s=>{
     const el=document.getElementById('screen-'+s);
     if(el) el.style.display='none';
   });
   const el=document.getElementById('screen-'+name);
   if(!el)return;
-  const flex=['waiting','answered','result','complete'];
+  const flex=['join','waiting','answered','result','complete'];
   el.style.display=flex.includes(name)?'flex':'block';
+}
+
+function exitSplash(){
+  showScreen('join');
 }
 
 function joinGame(){
@@ -363,7 +408,9 @@ window.onload=()=>{
   // 起動時に前回の状態キャッシュをクリア
   try{ localStorage.removeItem('trivia-state'); }catch(e){}
   lastTs=0;
-  showScreen('join');
+  showScreen('splash');
+  // PeerJS接続をバックグラウンドで開始
+  initPeerConnection();
 };
 </script>
 </body>
