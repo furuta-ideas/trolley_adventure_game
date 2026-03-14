@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>トリビアバトル — 参加者</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+JP:wght@400;700;900&display=swap');
+:root{--gold:#FFD700;--dark:#0A0A1A;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;height:100dvh;overflow:hidden;user-select:none;touch-action:manipulation;}
+
+/* JOIN */
+#screen-join{height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;background:radial-gradient(ellipse at 50% 30%,#1a1040 0%,#0A0A1A 70%);gap:20px;}
+.join-icon{font-size:3.5rem;}
+.join-title{font-family:'Black Han Sans',sans-serif;font-size:1.6rem;text-align:center;background:linear-gradient(180deg,#FFD700,#FF6B00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2;}
+.join-sub{color:rgba(255,255,255,.5);font-size:.85rem;letter-spacing:2px;}
+.name-input{width:100%;background:rgba(255,255,255,.08);border:2px solid rgba(255,215,0,.4);border-radius:16px;padding:16px 20px;color:#fff;font-family:'Noto Sans JP',sans-serif;font-size:1.3rem;text-align:center;outline:none;transition:border-color .2s;}
+.name-input::placeholder{color:rgba(255,255,255,.3);}
+.name-input:focus{border-color:var(--gold);background:rgba(255,255,255,.12);}
+.join-btn{width:100%;background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.2rem;padding:18px;border-radius:50px;cursor:pointer;letter-spacing:3px;box-shadow:0 6px 30px rgba(255,165,0,.5);transition:all .15s;-webkit-appearance:none;}
+.join-btn:active{transform:scale(.96);opacity:.9;}
+
+/* WAITING */
+#screen-waiting{display:none;height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:20px;background:radial-gradient(ellipse at 50% 40%,#0d1a3a 0%,#0A0A1A 70%);}
+.waiting-trolley{font-size:4rem;animation:float 2s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.waiting-name{font-size:1.4rem;font-weight:900;color:var(--gold);text-shadow:0 0 20px rgba(255,215,0,.5);}
+.waiting-status{color:rgba(255,255,255,.5);font-size:.9rem;letter-spacing:2px;text-align:center;}
+.pulse-ring{width:80px;height:80px;border:3px solid rgba(255,215,0,.3);border-radius:50%;animation:rpulse 2s ease-out infinite;}
+@keyframes rpulse{0%{transform:scale(.8);opacity:1}100%{transform:scale(1.8);opacity:0}}
+
+/* ★ ANSWER — レース中も回答可能 */
+#screen-answer{display:none;height:100dvh;position:relative;}
+.q-info{position:absolute;top:0;left:0;right:0;padding:12px 20px;text-align:center;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);z-index:10;font-size:.9rem;color:rgba(255,215,0,.85);letter-spacing:2px;}
+
+/* Race-mode banner shown when trolley is running */
+.race-mode-banner{position:absolute;top:52px;left:0;right:0;text-align:center;background:rgba(220,40,40,.85);padding:8px;font-size:.85rem;font-weight:900;letter-spacing:2px;z-index:10;animation:blink-b 1s infinite;}
+@keyframes blink-b{0%,100%{opacity:1}50%{opacity:.6}}
+
+.choice-left-btn,.choice-right-btn{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;top:0;width:50%;height:100%;cursor:pointer;border:none;transition:all .12s;padding:60px 16px 20px;}
+.choice-left-btn{left:0;background:linear-gradient(160deg,#0A2080 0%,#1A4FCC 60%,#0A2080 100%);border-right:3px solid rgba(255,255,255,.1);}
+.choice-right-btn{right:0;background:linear-gradient(200deg,#800A0A 0%,#CC1A1A 60%,#800A0A 100%);}
+.choice-left-btn:active,.choice-right-btn:active{filter:brightness(1.4);transform:scale(.97);}
+.choice-left-btn.selected,.choice-right-btn.selected{filter:brightness(1.25);box-shadow:inset 0 0 60px rgba(255,255,255,.2);}
+.choice-left-btn.not-selected,.choice-right-btn.not-selected{filter:brightness(.35) grayscale(.5);}
+.btn-direction{font-size:1.5rem;opacity:.6;letter-spacing:2px;margin-bottom:12px;}
+.btn-text{font-weight:900;font-size:clamp(1.8rem,8vw,3rem);text-align:center;text-shadow:2px 2px 0 rgba(0,0,0,.5);line-height:1.2;word-break:keep-all;}
+.btn-sub{margin-top:14px;font-size:.85rem;color:rgba(255,255,255,.4);letter-spacing:1px;}
+.divider-line{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:20;background:#fff;width:3px;height:60%;border-radius:2px;opacity:.18;}
+
+/* ANSWERED */
+#screen-answered{display:none;height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:20px;background:#0A0A1A;}
+.my-answer-badge{background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.18);border-radius:16px;padding:16px 30px;text-align:center;}
+.my-answer-label{font-size:.9rem;color:rgba(255,255,255,.4);margin-bottom:6px;}
+.my-answer-val{font-size:1.5rem;font-weight:900;color:#fff;}
+
+/* RESULT */
+#screen-result{display:none;height:100dvh;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px;}
+.result-correct{background:radial-gradient(ellipse at center,#0a3a1a 0%,#061206 70%);}
+.result-wrong{background:radial-gradient(ellipse at center,#3a0a0a 0%,#120606 70%);}
+.result-mark{font-size:8rem;animation:mark-pop .6s cubic-bezier(.34,1.56,.64,1) forwards;line-height:1;}
+@keyframes mark-pop{0%{transform:scale(.2) rotate(-20deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+.result-text{font-family:'Black Han Sans',sans-serif;font-size:2.5rem;text-align:center;}
+.result-correct-txt{color:#4AFF8A;text-shadow:0 0 30px rgba(74,255,138,.7);}
+.result-wrong-txt{color:#FF4A4A;text-shadow:0 0 30px rgba(255,74,74,.7);}
+.result-sub{font-size:1rem;color:rgba(255,255,255,.5);letter-spacing:2px;text-align:center;}
+
+/* COMPLETE */
+#screen-complete{display:none;height:100dvh;flex-direction:column;align-items:center;justify-content:center;padding:30px;gap:16px;background:radial-gradient(ellipse at center,#1a0a40 0%,#0A0A1A 70%);position:relative;overflow:hidden;}
+.complete-icon{font-size:4rem;animation:spin-b 3s ease-in-out infinite;}
+@keyframes spin-b{0%,100%{transform:rotate(-10deg) scale(1)}50%{transform:rotate(10deg) scale(1.2)}}
+.complete-title-sm{font-family:'Black Han Sans',sans-serif;font-size:2.2rem;background:linear-gradient(180deg,#FFD700,#FF6B00);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;text-align:center;line-height:1.2;}
+.score-box{background:rgba(255,215,0,.1);border:2px solid rgba(255,215,0,.3);border-radius:20px;padding:20px 40px;text-align:center;}
+.score-big{font-family:'Black Han Sans',sans-serif;font-size:3.5rem;color:var(--gold);text-shadow:0 0 30px rgba(255,215,0,.7);}
+.score-lbl{color:rgba(255,255,255,.55);font-size:.9rem;letter-spacing:2px;}
+.perfect-msg{color:#FFD700;font-weight:900;font-size:1.1rem;text-align:center;text-shadow:0 0 20px rgba(255,215,0,.7);display:none;}
+.confetti-sm{position:absolute;width:8px;height:12px;opacity:0;border-radius:2px;animation:fall-sm linear forwards;}
+@keyframes fall-sm{0%{transform:translateY(-10px) rotate(0deg);opacity:1}100%{transform:translateY(105dvh) rotate(540deg);opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- JOIN -->
+<div id="screen-join">
+  <div class="join-icon">🎮</div>
+  <div class="join-title">阿藤さん＆糸島さん<br>トリビアバトル</div>
+  <div class="join-sub">— 参加登録 —</div>
+  <input class="name-input" type="text" id="name-input" placeholder="ニックネームを入力" maxlength="10" autocomplete="off"/>
+  <button class="join-btn" onclick="joinGame()">参加する 🎯</button>
+</div>
+
+<!-- WAITING -->
+<div id="screen-waiting" style="display:none;flex-direction:column;">
+  <div class="pulse-ring"></div>
+  <div class="waiting-trolley">🚃</div>
+  <div class="waiting-name" id="waiting-name">プレイヤー</div>
+  <div class="waiting-status">ゲーム開始を待っています…</div>
+</div>
+
+<!-- ANSWER (問題表示中 + レース中も有効) -->
+<div id="screen-answer" style="display:none;">
+  <div class="q-info" id="q-info">第1問 / 全6問</div>
+  <div class="race-mode-banner" id="race-banner" style="display:none;">🚃 トロッコ走行中！今すぐ回答を！</div>
+  <button class="choice-left-btn" onclick="submitAnswer('left')" id="btn-left">
+    <div class="btn-direction">◀ ひだり</div>
+    <div class="btn-text" id="player-left-text">左</div>
+    <div class="btn-sub">タップして回答</div>
+  </button>
+  <div class="divider-line"></div>
+  <button class="choice-right-btn" onclick="submitAnswer('right')" id="btn-right">
+    <div class="btn-direction">みぎ ▶</div>
+    <div class="btn-text" id="player-right-text">右</div>
+    <div class="btn-sub">タップして回答</div>
+  </button>
+</div>
+
+<!-- ANSWERED (waiting for result) -->
+<div id="screen-answered" style="display:none;flex-direction:column;">
+  <div class="waiting-trolley">🚃</div>
+  <div class="my-answer-badge">
+    <div class="my-answer-label">あなたの回答</div>
+    <div class="my-answer-val" id="my-answer-display">—</div>
+  </div>
+  <div class="waiting-status">トロッコが走っています…</div>
+</div>
+
+<!-- RESULT -->
+<div id="screen-result" style="display:none;flex-direction:column;">
+  <div class="result-mark" id="result-mark">⚪</div>
+  <div class="result-text" id="result-text"></div>
+  <div class="result-sub" id="result-sub">次の問題を待ってください</div>
+</div>
+
+<!-- COMPLETE -->
+<div id="screen-complete" style="display:none;flex-direction:column;">
+  <div class="complete-icon" id="complete-icon">🏆</div>
+  <div class="complete-title-sm">ゲーム終了！</div>
+  <div class="score-box">
+    <div class="score-big" id="final-score">0</div>
+    <div class="score-lbl">/ 6問 回答</div>
+  </div>
+  <div class="perfect-msg" id="perfect-msg">🌟 全問回答しました！ 🌟</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+const TOTAL_Q=6;
+let myId=null, myName='', myAnswers=[], currentQ=0;
+let currentLeft='', currentRight='';
+let answering=false;  // ★ 回答受付中フラグ（question & race両フェーズで true）
+let audioCtx=null;
+let gameChannel=null;
+
+try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleServerMsg(e.data); }catch(e){}
+
+// ★ localStorage polling（同一端末以外のクロス通信サポート）
+let lastTs=0;
+setInterval(()=>{
+  try{
+    const raw=localStorage.getItem('trivia-state');
+    if(!raw)return;
+    const d=JSON.parse(raw);
+    if(d.ts&&d.ts!==lastTs){lastTs=d.ts;handleServerMsg(d);}
+  }catch(e){}
+},400);
+
+function handleServerMsg(d){
+  // ★ ゲーム初期化シグナル：player側を完全リセット
+  if(d.type==='game_init'){
+    initPlayerState();
+    showScreen('waiting');
+    return;
+  }
+  if(d.type==='question'){
+    currentQ=d.q; currentLeft=d.left; currentRight=d.right;
+    answering=true;
+    // この問の回答をリセット（再出題に備え）
+    myAnswers[currentQ]=null;
+    showAnswerScreen(false);
+  }
+  if(d.type==='race_start'){
+    answering=true;
+    const alreadyAnswered=myAnswers[currentQ]!==null&&myAnswers[currentQ]!==undefined;
+    if(!alreadyAnswered){ showAnswerScreen(true); }
+  }
+  if(d.type==='result'){
+    answering=false;
+    showResult(d.correct);
+  }
+  if(d.type==='complete'){
+    showCompleteScreen();
+  }
+}
+
+function sendToHost(d){
+  try{if(gameChannel)gameChannel.postMessage(d);}catch(e){}
+}
+
+// ══════════════════════════════════════════
+//  完全初期化（2回目以降も確実にリセット）
+// ══════════════════════════════════════════
+function initPlayerState(){
+  currentQ=0;
+  currentLeft=''; currentRight='';
+  myAnswers=Array(TOTAL_Q).fill(null);
+  answering=false;
+
+  // DOM リセット
+  document.getElementById('btn-left').disabled=false;
+  document.getElementById('btn-right').disabled=false;
+  document.getElementById('btn-left').className='choice-left-btn';
+  document.getElementById('btn-right').className='choice-right-btn';
+  document.getElementById('race-banner').style.display='none';
+  document.getElementById('my-answer-display').textContent='—';
+  document.getElementById('result-mark').textContent='⚪';
+  document.getElementById('result-text').textContent='';
+  document.getElementById('result-sub').textContent='次の問題を待ってください';
+  document.getElementById('screen-result').className='';
+  document.getElementById('perfect-msg').style.display='none';
+  // コンプリート画面の紙吹雪残骸を除去
+  document.getElementById('screen-complete').querySelectorAll('.confetti-sm').forEach(e=>e.remove());
+}
+function showScreen(name){
+  ['join','waiting','answer','answered','result','complete'].forEach(s=>{
+    const el=document.getElementById('screen-'+s);
+    if(el) el.style.display='none';
+  });
+  const el=document.getElementById('screen-'+name);
+  if(!el)return;
+  const flex=['waiting','answered','result','complete'];
+  el.style.display=flex.includes(name)?'flex':'block';
+}
+
+function joinGame(){
+  const inp=document.getElementById('name-input');
+  const name=inp.value.trim();
+  if(!name){inp.focus();inp.style.borderColor='#FF3333';return;}
+  inp.style.borderColor='';
+  myName=name;
+  myId='p-'+Date.now()+'-'+Math.random().toString(36).slice(2,6);
+  initPlayerState(); // ★ 参加するたびに完全リセット
+  document.getElementById('waiting-name').textContent=myName+' さん';
+  showScreen('waiting');
+  sendToHost({type:'join',id:myId,name:myName});
+  getACtx();
+}
+
+function showAnswerScreen(raceMode){
+  document.getElementById('q-info').textContent=`第${currentQ+1}問 / 全${TOTAL_Q}問`;
+  document.getElementById('player-left-text').textContent=currentLeft;
+  document.getElementById('player-right-text').textContent=currentRight;
+  document.getElementById('race-banner').style.display=raceMode?'block':'none';
+
+  // ボタン状態を完全リセット
+  const bl=document.getElementById('btn-left');
+  const br=document.getElementById('btn-right');
+  bl.disabled=false; br.disabled=false;
+  bl.className='choice-left-btn';
+  br.className='choice-right-btn';
+  // reflow で前のアニメーション・スタイルを確実にクリア
+  void bl.offsetWidth; void br.offsetWidth;
+
+  showScreen('answer');
+}
+
+function submitAnswer(choice){
+  if(!answering)return;
+  if(myAnswers[currentQ]!==null&&myAnswers[currentQ]!==undefined)return; // 二重タップ防止
+  answering=false; // 即座にロック
+  myAnswers[currentQ]=choice;
+
+  document.getElementById('btn-left').className='choice-left-btn'+(choice==='left'?' selected':' not-selected');
+  document.getElementById('btn-right').className='choice-right-btn'+(choice==='right'?' selected':' not-selected');
+  document.getElementById('btn-left').disabled=true;
+  document.getElementById('btn-right').disabled=true;
+
+  const chosen=choice==='left'?currentLeft:currentRight;
+  document.getElementById('my-answer-display').textContent=(choice==='left'?'◀ ':' ▶ ')+chosen;
+  sendToHost({type:'answer',id:myId,choice,q:currentQ});
+  setTimeout(()=>showScreen('answered'),350);
+}
+
+function showResult(correct){
+  answering=false;
+  const myChoice=myAnswers[currentQ];
+  const ok=myChoice===correct;
+  const screen=document.getElementById('screen-result');
+  screen.className=ok?'result-correct':'result-wrong';
+  document.getElementById('result-mark').textContent=ok?'⚪':'✕';
+  document.getElementById('result-text').textContent=ok?'正解！':'不正解…';
+  document.getElementById('result-text').className='result-text '+(ok?'result-correct-txt':'result-wrong-txt');
+  document.getElementById('result-sub').textContent=ok?'🎉 やったね！次の問題を待とう':'💪 次は頑張ろう！';
+  showScreen('result');
+  playResultSound(ok);
+}
+
+function showCompleteScreen(){
+  const answered=myAnswers.filter(a=>a!==null&&a!==undefined).length;
+  document.getElementById('final-score').textContent=answered;
+  if(answered===TOTAL_Q){
+    document.getElementById('perfect-msg').style.display='block';
+    document.getElementById('complete-icon').textContent='🏆';
+    spawnSmallConfetti();
+  }else{
+    document.getElementById('perfect-msg').style.display='none';
+    document.getElementById('complete-icon').textContent=answered>=4?'🎖️':'🎮';
+  }
+  showScreen('complete');
+}
+
+// ══════════════════════════════════════════
+//  CONFETTI
+// ══════════════════════════════════════════
+function spawnSmallConfetti(){
+  const cols=['#FFD700','#FF6B00','#FF3366','#00CCFF','#00FF88'];
+  for(let i=0;i<35;i++){
+    setTimeout(()=>{
+      const el=document.createElement('div'); el.className='confetti-sm';
+      el.style.left=Math.random()*100+'vw'; el.style.top='-10px';
+      el.style.background=cols[Math.floor(Math.random()*cols.length)];
+      el.style.animationDuration=(2+Math.random()*2)+'s';
+      document.getElementById('screen-complete').appendChild(el);
+      setTimeout(()=>el.remove(),4000);
+    },i*80);
+  }
+}
+
+// ══════════════════════════════════════════
+//  AUDIO
+// ══════════════════════════════════════════
+function getACtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+
+function playResultSound(ok){
+  const ctx=getACtx(),g=ctx.createGain(); g.connect(ctx.destination); g.gain.setValueAtTime(.4,ctx.currentTime);
+  if(ok){
+    [523,659,784,1047].forEach((f,i)=>{
+      const o=ctx.createOscillator(),og=ctx.createGain();
+      o.connect(og); og.connect(g); o.type='triangle'; o.frequency.value=f;
+      og.gain.setValueAtTime(0,ctx.currentTime+i*.13);
+      og.gain.linearRampToValueAtTime(.5,ctx.currentTime+i*.13+.04);
+      og.gain.linearRampToValueAtTime(0,ctx.currentTime+i*.13+.26);
+      o.start(ctx.currentTime+i*.13); o.stop(ctx.currentTime+i*.13+.3);
+    });
+  }else{
+    // ブザー2連発
+    [180,120].forEach((f,i)=>{
+      const o=ctx.createOscillator(),og=ctx.createGain();
+      o.connect(og); og.connect(g); o.type='square'; o.frequency.value=f;
+      og.gain.setValueAtTime(.4,ctx.currentTime+i*.55);
+      og.gain.linearRampToValueAtTime(0,ctx.currentTime+i*.55+.48);
+      o.start(ctx.currentTime+i*.55); o.stop(ctx.currentTime+i*.55+.5);
+    });
+  }
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+window.onload=()=>{
+  // 起動時に前回の状態キャッシュをクリア
+  try{ localStorage.removeItem('trivia-state'); }catch(e){}
+  lastTs=0;
+  showScreen('join');
+};
+</script>
+</body>
+</html>
