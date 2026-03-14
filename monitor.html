@@ -18,13 +18,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 @keyframes pulse-b{0%,100%{box-shadow:0 0 20px rgba(255,215,0,.4)}50%{box-shadow:0 0 50px rgba(255,215,0,.9)}}
 .title-main{font-family:'Black Han Sans',sans-serif;font-size:clamp(2.8rem,6.5vw,5.5rem);text-align:center;line-height:1.15;background:linear-gradient(180deg,#FFD700 0%,#FF6B00 50%,#FF0000 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 30px rgba(255,200,0,.8));margin-bottom:10px;}
 .title-sub{font-size:1.3rem;color:rgba(255,255,255,.65);letter-spacing:4px;margin-bottom:40px;}
-.qr-section{background:rgba(255,255,255,.07);border:2px solid rgba(255,215,0,.3);border-radius:20px;padding:22px 36px;text-align:center;backdrop-filter:blur(10px);margin-bottom:24px;}
-.qr-label{font-size:.88rem;color:var(--gold);letter-spacing:2px;margin-bottom:10px;}
-.qr-box{width:150px;height:150px;background:#fff;border-radius:10px;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;}
-.qr-url{font-size:.8rem;color:rgba(255,255,255,.55);font-family:monospace;}
-.participants-list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:800px;margin-bottom:32px;min-height:36px;}
-.participant-chip{background:rgba(255,215,0,.13);border:1px solid rgba(255,215,0,.4);color:var(--gold);padding:5px 16px;border-radius:20px;font-size:.9rem;animation:chipIn .3s ease;}
-@keyframes chipIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+.qr-section{text-align:center;margin-bottom:40px;}
+.qr-box{width:300px;height:300px;background:#fff;border-radius:16px;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 0 60px rgba(255,215,0,.3);}
 .start-btn{background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.4rem;padding:16px 56px;border-radius:50px;cursor:pointer;letter-spacing:4px;box-shadow:0 8px 40px rgba(255,165,0,.6);transition:all .2s;}
 .start-btn:hover{transform:scale(1.05) translateY(-3px);}
 .start-btn:active{transform:scale(.97);}
@@ -124,16 +119,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 <!-- TITLE -->
 <div id="screen-title" style="display:none;">
   <div class="stars"></div>
-  <div class="title-badge">🎉 感謝会スペシャル 🎉</div>
-  <div class="title-main">阿藤さん＆糸島さん<br>トリビアバトル</div>
-  <div class="title-sub">— TRIVIA BATTLE —</div>
   <div class="qr-section">
-    <div class="qr-label">📱 参加者はこちらをスキャン</div>
     <div class="qr-box" id="qr-box"></div>
-    <div class="qr-url" id="player-url"></div>
-  </div>
-  <div class="participants-list" id="participants-list">
-    <span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると表示されます</span>
   </div>
   <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
 </div>
@@ -249,13 +236,12 @@ function initPeer(){
 function generateQR(){
   const baseUrl='https://furuta-ideas.github.io/trolley_adventure_game/player.html';
   const url=baseUrl+'?room='+roomId;
-  document.getElementById('player-url').textContent=url;
   try{
     const qr=qrcode(0,'M'); qr.addData(url); qr.make();
     const box=document.getElementById('qr-box');
-    box.innerHTML=qr.createImgTag(3,0);
+    box.innerHTML=qr.createImgTag(6,0);
     const img=box.querySelector('img');
-    if(img) img.style.cssText='width:130px;height:130px;image-rendering:pixelated;';
+    if(img) img.style.cssText='width:270px;height:270px;image-rendering:pixelated;';
   }catch(e){ console.warn('QR generation failed:',e); }
 }
 
@@ -283,13 +269,7 @@ function handleMsg(d){
   }
 }
 
-function updateChips(){
-  const list=document.getElementById('participants-list');
-  const names=Object.values(participants).map(p=>p.name);
-  list.innerHTML=names.length===0
-    ?'<span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると表示されます</span>'
-    :names.map(n=>`<span class="participant-chip">👤 ${n}</span>`).join('');
-}
+function updateChips(){}
 function updateAnswerCount(){
   const total=Object.keys(participants).length;
   answeredCount=Object.values(participants).filter(p=>p.answers[currentQ]!==null).length;
