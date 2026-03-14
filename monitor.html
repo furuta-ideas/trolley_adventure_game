@@ -18,8 +18,11 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 @keyframes pulse-b{0%,100%{box-shadow:0 0 20px rgba(255,215,0,.4)}50%{box-shadow:0 0 50px rgba(255,215,0,.9)}}
 .title-main{font-family:'Black Han Sans',sans-serif;font-size:clamp(2.8rem,6.5vw,5.5rem);text-align:center;line-height:1.15;background:linear-gradient(180deg,#FFD700 0%,#FF6B00 50%,#FF0000 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 30px rgba(255,200,0,.8));margin-bottom:10px;}
 .title-sub{font-size:1.3rem;color:rgba(255,255,255,.65);letter-spacing:4px;margin-bottom:40px;}
-.qr-section{text-align:center;margin-bottom:40px;}
+.qr-section{text-align:center;margin-bottom:24px;}
 .qr-box{width:300px;height:300px;background:#fff;border-radius:16px;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 0 60px rgba(255,215,0,.3);}
+.participants-list{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:800px;margin:20px auto 32px;min-height:36px;}
+.participant-chip{background:rgba(255,215,0,.13);border:1px solid rgba(255,215,0,.4);color:var(--gold);padding:5px 16px;border-radius:20px;font-size:.9rem;animation:chipIn .3s ease;}
+@keyframes chipIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
 .start-btn{background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.4rem;padding:16px 56px;border-radius:50px;cursor:pointer;letter-spacing:4px;box-shadow:0 8px 40px rgba(255,165,0,.6);transition:all .2s;}
 .start-btn:hover{transform:scale(1.05) translateY(-3px);}
 .start-btn:active{transform:scale(.97);}
@@ -41,6 +44,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .trolley-idle{position:absolute;bottom:8%;left:50%;transform:translateX(-50%);z-index:8;text-align:center;}
 .trolley-emoji{font-size:5rem;display:block;filter:drop-shadow(0 0 20px rgba(255,200,0,.8));animation:idle 1.5s ease-in-out infinite;}
 @keyframes idle{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-5px) rotate(1deg)}}
+.choice-names{position:absolute;bottom:60px;width:100%;display:flex;flex-wrap:wrap;gap:5px;justify-content:center;padding:0 12px;z-index:10;pointer-events:none;}
+.choice-name-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);color:#fff;padding:3px 12px;border-radius:14px;font-size:.75rem;animation:chipIn .3s ease;backdrop-filter:blur(4px);}
 .answer-count{position:absolute;bottom:18px;right:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:9px 18px;font-size:1rem;z-index:10;}
 .start-race-btn{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.25rem;padding:14px 46px;border-radius:50px;cursor:pointer;letter-spacing:3px;box-shadow:0 8px 40px rgba(255,165,0,.6);z-index:10;animation:pulse-b 2s infinite;transition:transform .1s;}
 .start-race-btn:hover{transform:translateX(-50%) scale(1.05);}
@@ -122,6 +127,9 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   <div class="qr-section">
     <div class="qr-box" id="qr-box"></div>
   </div>
+  <div class="participants-list" id="participants-list">
+    <span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると表示されます</span>
+  </div>
   <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
 </div>
 
@@ -135,11 +143,13 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
     <div class="choice-label">◀ ひだり</div>
     <div class="choice-text" id="choice-left-text">左</div>
     <div class="choice-arrow-l">◀◀</div>
+    <div class="choice-names" id="choice-left-names"></div>
   </div>
   <div class="choice-right">
     <div class="choice-label">みぎ ▶</div>
     <div class="choice-text" id="choice-right-text">右</div>
     <div class="choice-arrow-r">▶▶</div>
+    <div class="choice-names" id="choice-right-names"></div>
   </div>
   <div class="trolley-idle">
     <span class="trolley-emoji">🚃</span>
@@ -269,13 +279,29 @@ function handleMsg(d){
   }
 }
 
-function updateChips(){}
+function updateChips(){
+  const list=document.getElementById('participants-list');
+  const names=Object.values(participants).map(p=>p.name);
+  list.innerHTML=names.length===0
+    ?'<span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると表示されます</span>'
+    :names.map(n=>`<span class="participant-chip">👤 ${n}</span>`).join('');
+}
 function updateAnswerCount(){
   const total=Object.keys(participants).length;
   answeredCount=Object.values(participants).filter(p=>p.answers[currentQ]!==null).length;
   const txt=`📱 ${answeredCount} / ${total}人 回答済み`;
   document.getElementById('answer-count').textContent=txt;
   document.getElementById('race-ans-count').textContent=txt;
+  updateChoiceNames();
+}
+function updateChoiceNames(){
+  const leftNames=[],rightNames=[];
+  Object.values(participants).forEach(p=>{
+    if(p.answers[currentQ]==='left') leftNames.push(p.name);
+    else if(p.answers[currentQ]==='right') rightNames.push(p.name);
+  });
+  document.getElementById('choice-left-names').innerHTML=leftNames.map(n=>`<span class="choice-name-chip">${n}</span>`).join('');
+  document.getElementById('choice-right-names').innerHTML=rightNames.map(n=>`<span class="choice-name-chip">${n}</span>`).join('');
 }
 
 // ══════════════════════════════════════════
@@ -326,6 +352,8 @@ function loadQuestion(){
   answeredCount=0;
   document.getElementById('answer-count').textContent='📱 0人 回答済み';
   document.getElementById('race-ans-count').textContent='📱 0人 回答済み';
+  document.getElementById('choice-left-names').innerHTML='';
+  document.getElementById('choice-right-names').innerHTML='';
 
   // アニメーションクラスを完全除去（前問の残骸）
   const lp=document.getElementById('answer-left-panel');
