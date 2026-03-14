@@ -164,7 +164,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 
 <!-- RACE -->
 <div id="screen-race">
-  <video id="race-video" playsinline muted preload="auto" src="トロッコ動画.mp4"></video>
+  <video id="race-video" playsinline preload="auto" src="トロッコ動画.mp4"></video>
   <div class="race-ui">
     <div class="race-timer-box">
       <span class="race-timer-num" id="race-timer-num">10</span>
@@ -307,7 +307,9 @@ function showScreen(name){
     if(el) el.style.display='none';
   });
   const el=document.getElementById('screen-'+name);
-  if(el) el.style.display=(name==='complete')?'flex':(name==='title')?'flex':'block';
+  if(!el)return;
+  const flexScreens=['splash','title','complete'];
+  el.style.display=flexScreens.includes(name)?'flex':'block';
 }
 
 function exitSplash(){
@@ -366,10 +368,15 @@ function startRace(){
   raceAccepting=true;
   showScreen('race');
 
-  // 動画を再生
+  // 動画を再生（音声付き）
   const video=document.getElementById('race-video');
   video.currentTime=0;
-  video.play().catch(e=>console.warn('Video play failed:',e));
+  video.muted=false;
+  video.play().catch(()=>{
+    // 自動再生制限時はミュートで開始→すぐにアンミュート
+    video.muted=true;
+    video.play().then(()=>{ video.muted=false; }).catch(e=>console.warn('Video play failed:',e));
+  });
 
   sendToPlayers({type:'race_start'});
 
