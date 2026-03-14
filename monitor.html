@@ -52,8 +52,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .start-race-btn:active{transform:translateX(-50%) scale(.97);}
 
 /* ── RACE ── */
-#screen-race{display:none;height:100vh;position:relative;overflow:hidden;}
-#race-canvas{position:absolute;inset:0;width:100%;height:100%;}
+#screen-race{display:none;height:100vh;position:relative;overflow:hidden;background:#000;}
+#race-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
 .race-ui{position:absolute;inset:0;pointer-events:none;z-index:20;}
 .race-timer-box{position:absolute;top:18px;left:50%;transform:translateX(-50%);text-align:center;}
 .race-timer-num{font-family:'Black Han Sans',sans-serif;font-size:5.5rem;color:var(--gold);text-shadow:0 0 40px rgba(255,215,0,.9),0 0 80px rgba(255,165,0,.5);animation:tpulse 1s ease-in-out infinite;display:block;}
@@ -164,7 +164,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 
 <!-- RACE -->
 <div id="screen-race">
-  <canvas id="race-canvas"></canvas>
+  <video id="race-video" playsinline muted preload="auto" src="トロッコ動画.mp4"></video>
   <div class="race-ui">
     <div class="race-timer-box">
       <span class="race-timer-num" id="race-timer-num">10</span>
@@ -361,17 +361,17 @@ function loadQuestion(){
 }
 
 function startRace(){
-  // 前回のレースが残っていれば完全停止してからスタート
-  stopTrolleyCanvas();
   if(raceTimerInterval){ clearInterval(raceTimerInterval); raceTimerInterval=null; }
 
   raceAccepting=true;
   showScreen('race');
-  playBGM('race');
 
-  const canvas=document.getElementById('race-canvas');
-  canvas.width=window.innerWidth; canvas.height=window.innerHeight;
-  startTrolleyCanvas(canvas);
+  // 動画を再生
+  const video=document.getElementById('race-video');
+  video.currentTime=0;
+  video.play().catch(e=>console.warn('Video play failed:',e));
+
+  sendToPlayers({type:'race_start'});
 
   countdownVal=10;
   document.getElementById('race-timer-num').textContent=countdownVal;
@@ -382,7 +382,9 @@ function startRace(){
     if(countdownVal<=0){
       clearInterval(raceTimerInterval); raceTimerInterval=null;
       raceAccepting=false;
-      stopTrolleyCanvas();
+      // 動画を停止
+      const v=document.getElementById('race-video');
+      v.pause();
       stopBGM();
       playSound('brake');
       setTimeout(()=>showScreen('answer'),700);
@@ -440,7 +442,6 @@ function restartGame(){
 function initAllState(){
   // ── タイマー・アニメーション完全停止
   if(raceTimerInterval){ clearInterval(raceTimerInterval); raceTimerInterval=null; }
-  stopTrolleyCanvas();   // rafId をキャンセル
   stopBGM();
 
   // ── ゲーム変数リセット
@@ -449,23 +450,10 @@ function initAllState(){
   raceAccepting=false;
   countdownVal=10;
   participants={};
-  Object.values(participants).forEach(p=>p.answers=Array(QUESTIONS.length).fill(null));
 
-  // ── Canvas クリア
-  const canvas=document.getElementById('race-canvas');
-  const ctx=canvas.getContext('2d');
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // ── Canvas アニメ内部変数リセット
-  particles=[];
-  racePhase='intro';
-  raceElapsed=0;
-  trackOffset=0;
-  speed=2;
-  tunnelAlpha=0;
-  shakeX=0; shakeY=0;
-  stonePattern=null;
-  canvasCtx=null;
+  // ── 動画リセット
+  const video=document.getElementById('race-video');
+  if(video){ video.pause(); video.currentTime=0; }
 
   // ── DOM リセット（アニメーションクラス等）
   const lp=document.getElementById('answer-left-panel');
@@ -491,409 +479,6 @@ function initAllState(){
   try{ localStorage.removeItem('trivia-state'); }catch(e){}
 }
 
-// ══════════════════════════════════════════
-//  ★ TROLLEY CANVAS — ネプリーグ風本格演出
-//  フェーズ: intro(0-2s) → loop(2-8.5s) → junction(8.5-10s)
-// ══════════════════════════════════════════
-let rafId=null, canvasCtx=null;
-let particles=[], racePhase='intro', raceElapsed=0;
-let shakeX=0, shakeY=0, trackOffset=0, speed=2;
-let tunnelAlpha=0, canvasW=0, canvasH=0;
-let stonePattern=null, raceStartTime=0;
-
-class Particle{
-  constructor(x,y,vx,vy,life,r,color,type='spark'){
-    Object.assign(this,{x,y,vx,vy,life,maxLife:life,r,color,type});
-  }
-  update(){
-    this.x+=this.vx; this.y+=this.vy;
-    this.vy+=0.18; this.vx*=0.97; this.life--;
-  }
-  draw(ctx){
-    const a=Math.max(0,this.life/this.maxLife);
-    ctx.save(); ctx.globalAlpha=a;
-    if(this.type==='smoke'){
-      const r=this.r*(1.3-(this.life/this.maxLife)*0.4);
-      ctx.fillStyle=this.color;
-      ctx.beginPath(); ctx.arc(this.x,this.y,r,0,Math.PI*2); ctx.fill();
-    }else{
-      ctx.shadowColor=this.color; ctx.shadowBlur=10;
-      ctx.fillStyle=this.color;
-      ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill();
-    }
-    ctx.restore();
-  }
-}
-
-function startTrolleyCanvas(canvas){
-  canvasCtx=canvas.getContext('2d');
-  canvasW=canvas.width; canvasH=canvas.height;
-  particles=[]; racePhase='intro'; raceElapsed=0;
-  trackOffset=0; speed=2; tunnelAlpha=0;
-  raceStartTime=performance.now();
-
-  // Build stone texture
-  const pat=document.createElement('canvas'); pat.width=60; pat.height=60;
-  const pc=pat.getContext('2d');
-  pc.fillStyle='#2a1f0e'; pc.fillRect(0,0,60,60);
-  pc.strokeStyle='#180e04'; pc.lineWidth=1;
-  [[0,0,28,13],[30,0,28,13],[0,15,19,13],[21,15,37,13],[0,30,38,13],[40,30,18,13],[0,45,24,13],[26,45,32,13]].forEach(([x,y,w,h])=>{
-    pc.beginPath(); pc.rect(x+0.5,y+0.5,w,h); pc.stroke();
-  });
-  stonePattern=canvasCtx.createPattern(pat,'repeat');
-
-  function loop(now){
-    raceElapsed=now-raceStartTime;
-    updatePhase(raceElapsed);
-    drawFrame(canvasCtx,canvasW,canvasH,raceElapsed);
-    rafId=requestAnimationFrame(loop);
-  }
-  rafId=requestAnimationFrame(loop);
-}
-
-function stopTrolleyCanvas(){
-  if(rafId){cancelAnimationFrame(rafId);rafId=null;}
-}
-
-function updatePhase(ms){
-  if(ms<2000){
-    racePhase='intro';
-    tunnelAlpha=Math.min(1,ms/600);
-    speed=2+(ms/2000)*14;
-  }else if(ms<8500){
-    racePhase='loop';
-    tunnelAlpha=1;
-    speed=16+Math.sin(ms/700)*2.5;
-  }else{
-    racePhase='junction';
-    const t=(ms-8500)/1500;
-    speed=Math.max(1.5,16*(1-t*t*0.95));
-    tunnelAlpha=1;
-  }
-
-  trackOffset=(trackOffset+speed*0.7)%80;
-
-  // Camera shake
-  const shakeAmt=racePhase==='loop'?Math.min(speed*.5,7):racePhase==='junction'?5:2;
-  shakeX=(Math.random()-.5)*shakeAmt;
-  shakeY=(Math.random()-.5)*shakeAmt*.6;
-
-  // Spawn particles
-  const cx=canvasW/2, cy=canvasH*.62;
-  if(racePhase==='loop'||racePhase==='junction'){
-    // Sparks under trolley
-    if(Math.random()<.5){
-      particles.push(new Particle(cx+(Math.random()-.5)*70,cy+45,
-        (Math.random()-.5)*7,-(Math.random()*5+2),18+Math.random()*12,
-        2+Math.random()*3,Math.random()<.5?'#FFD700':'#FF6B00'));
-    }
-    // Smoke
-    if(Math.random()<.3){
-      particles.push(new Particle(cx+(Math.random()-.5)*40,cy-25,
-        (Math.random()-.5)*1.5,-(Math.random()*.8+.3),55+Math.random()*35,
-        14+Math.random()*18,`rgba(${100+Math.floor(Math.random()*60)},${100+Math.floor(Math.random()*60)},${100+Math.floor(Math.random()*60)},.25)`,'smoke'));
-    }
-    // Wall sparks
-    if(Math.random()<.25){
-      const s=Math.random()<.5?-1:1;
-      particles.push(new Particle(cx+s*(180+Math.random()*80),cy+(Math.random()-.5)*100,
-        s*(Math.random()*4+1),(Math.random()-.5)*3,12+Math.random()*10,
-        1.5+Math.random()*2,Math.random()<.5?'#FF8C00':'#FFFF44'));
-    }
-  }
-  if(racePhase==='junction'){
-    // Heavy brake sparks
-    for(let i=0;i<4;i++){
-      particles.push(new Particle(cx+(Math.random()-.5)*90,cy+35,
-        (Math.random()-.5)*12,-(Math.random()*9+3),25+Math.random()*20,
-        2+Math.random()*4,['#FFD700','#FF4500','#FFF','#FF6B00'][Math.floor(Math.random()*4)]));
-    }
-  }
-  particles=particles.filter(p=>p.life>0);
-  particles.forEach(p=>p.update());
-}
-
-function drawFrame(ctx,W,H,ms){
-  ctx.save();
-  ctx.translate(shakeX,shakeY);
-
-  // BG
-  if(tunnelAlpha<1){
-    const bg=ctx.createLinearGradient(0,0,0,H);
-    bg.addColorStop(0,'#050510'); bg.addColorStop(1,'#1a0800');
-    ctx.fillStyle=bg; ctx.fillRect(-10,-10,W+20,H+20);
-  }
-
-  // Tunnel
-  if(tunnelAlpha>0){
-    ctx.globalAlpha=tunnelAlpha;
-    drawTunnel(ctx,W,H);
-    ctx.globalAlpha=1;
-  }
-
-  // Track (always)
-  drawTrack(ctx,W,H);
-
-  // Cave decoration
-  if(tunnelAlpha>0){
-    ctx.globalAlpha=tunnelAlpha;
-    drawCave(ctx,W,H,ms);
-    ctx.globalAlpha=1;
-  }
-
-  // Smoke (back)
-  particles.filter(p=>p.type==='smoke').forEach(p=>p.draw(ctx));
-
-  // Trolley
-  drawTrolley(ctx,W,H,ms);
-
-  // Sparks (front)
-  particles.filter(p=>p.type!=='smoke').forEach(p=>p.draw(ctx));
-
-  // Speed lines (loop phase)
-  if(racePhase==='loop') drawSpeedLines(ctx,W,H,ms);
-
-  // Junction overlay
-  if(racePhase==='junction') drawJunction(ctx,W,H,(ms-8500)/1500);
-
-  // Vignette
-  const vig=ctx.createRadialGradient(W/2,H/2,H*.15,W/2,H/2,H*.85);
-  vig.addColorStop(0,'transparent'); vig.addColorStop(1,'rgba(0,0,0,.7)');
-  ctx.fillStyle=vig; ctx.fillRect(-10,-10,W+20,H+20);
-
-  ctx.restore();
-}
-
-function drawTunnel(ctx,W,H){
-  ctx.fillStyle=stonePattern||'#2a1f0e'; ctx.fillRect(0,0,W,H);
-  const cx=W/2, archW=W*.9, archH=H*.94;
-  ctx.beginPath();
-  ctx.ellipse(cx,archH*.52,archW/2,archH/2,0,0,Math.PI*2);
-  ctx.fillStyle='#04030a'; ctx.fill();
-  ctx.strokeStyle='rgba(100,70,20,.9)'; ctx.lineWidth=10; ctx.stroke();
-  ctx.strokeStyle='rgba(200,160,50,.25)'; ctx.lineWidth=3; ctx.stroke();
-}
-
-function drawCave(ctx,W,H,ms){
-  // Depth wall strips
-  for(let i=0;i<7;i++){
-    const d=i/7;
-    const wx=W*.05+d*W*.22;
-    const wh=H*(.88-d*.28);
-    const wy=(H-wh)/2;
-    ctx.globalAlpha=(1-d)*.5*tunnelAlpha;
-    ctx.fillStyle=`hsl(30,${28-d*18}%,${7+d*5}%)`;
-    ctx.fillRect(wx-9,wy,15-d*2,wh);
-    ctx.fillRect(W-wx-6+d*2,wy,15-d*2,wh);
-  }
-
-  // Stalactites (ceiling)
-  ctx.globalAlpha=tunnelAlpha*.7;
-  const numS=24;
-  for(let i=0;i<numS;i++){
-    const sx=((i/numS)*W+(ms*.005*speed)%W)%W;
-    const sh=18+Math.sin(i*2.5)*22;
-    const sw=5+Math.sin(i*1.9)*3;
-    ctx.fillStyle='#19120a';
-    ctx.beginPath();
-    ctx.moveTo(sx,0); ctx.lineTo(sx+sw,0); ctx.lineTo(sx+sw*.5,sh); ctx.closePath(); ctx.fill();
-  }
-
-  // Torch lights
-  ctx.globalAlpha=tunnelAlpha;
-  [[W*.15,H*.43],[W*.85,H*.43],[W*.32,H*.36],[W*.68,H*.36]].forEach(([tx,ty],i)=>{
-    const fl=.65+Math.sin(ms*.012+i*1.3)*.35;
-    const gr=ctx.createRadialGradient(tx,ty,0,tx,ty,90);
-    gr.addColorStop(0,`rgba(255,150,20,${.38*fl})`);
-    gr.addColorStop(.5,`rgba(255,70,0,${.13*fl})`);
-    gr.addColorStop(1,'transparent');
-    ctx.fillStyle=gr; ctx.fillRect(tx-95,ty-95,190,190);
-    ctx.shadowColor=`rgba(255,150,30,${.9*fl})`; ctx.shadowBlur=15;
-    ctx.fillStyle=`rgba(255,210,60,${.95*fl})`;
-    ctx.beginPath(); ctx.arc(tx,ty,4.5,0,Math.PI*2); ctx.fill();
-    ctx.shadowBlur=0;
-  });
-  ctx.globalAlpha=1;
-}
-
-function drawTrack(ctx,W,H){
-  const vanX=W/2, vanY=H*.22, groundY=H*.9, spread=W*.16;
-
-  // Ground
-  const gg=ctx.createLinearGradient(0,vanY,0,groundY);
-  gg.addColorStop(0,'#0e0904'); gg.addColorStop(.6,'#19100505'); gg.addColorStop(1,'#110c04');
-  ctx.fillStyle=gg;
-  ctx.beginPath();
-  ctx.moveTo(0,groundY); ctx.lineTo(W,groundY);
-  ctx.lineTo(vanX+spread,vanY); ctx.lineTo(vanX-spread,vanY);
-  ctx.closePath(); ctx.fill();
-
-  // Rails
-  ['left','right'].forEach(side=>{
-    const s=side==='left'?-1:1;
-    const rg=ctx.createLinearGradient(vanX,vanY,vanX+s*spread,groundY);
-    rg.addColorStop(0,'#666'); rg.addColorStop(.5,'#C8A040'); rg.addColorStop(1,'#8B6914');
-    ctx.beginPath(); ctx.moveTo(vanX+s*4,vanY); ctx.lineTo(vanX+s*spread,groundY);
-    ctx.strokeStyle=rg; ctx.lineWidth=side==='left'?5:6; ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(vanX+s*4,vanY); ctx.lineTo(vanX+s*spread,groundY);
-    ctx.strokeStyle='rgba(255,220,100,.3)'; ctx.lineWidth=2; ctx.stroke();
-  });
-
-  // Sleepers
-  for(let i=0;i<20;i++){
-    const frac=((i/20)+(trackOffset/80))%1;
-    const ty=vanY+frac*(groundY-vanY);
-    const tw=frac*spread*2;
-    const tx=vanX-tw/2;
-    const th=Math.max(2,frac*11);
-    ctx.globalAlpha=Math.min(1,frac*3.5);
-    const tg=ctx.createLinearGradient(tx,ty,tx+tw,ty);
-    tg.addColorStop(0,'#3a2a0a'); tg.addColorStop(.5,'#5C3D0A'); tg.addColorStop(1,'#3a2a0a');
-    ctx.fillStyle=tg;
-    ctx.beginPath(); ctx.rect(tx,ty-th/2,tw,th); ctx.fill();
-    ctx.globalAlpha=1;
-  }
-}
-
-function drawTrolley(ctx,W,H,ms){
-  const cx=W/2, cy=H*.62;
-  const t=ms/1000;
-  const rock=Math.sin(t*(speed*.5+5))*Math.min(speed*.35,5);
-  const bounce=Math.abs(Math.sin(t*(speed*.3+8)))*-Math.min(speed*.28,7);
-
-  ctx.save();
-  ctx.translate(cx+rock*.4,cy+bounce);
-  ctx.rotate(rock*Math.PI/180);
-
-  const tw=130, th=72;
-
-  // Shadow
-  ctx.beginPath(); ctx.ellipse(0,th/2+12,68,14,0,0,Math.PI*2);
-  ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fill();
-
-  // Wheels
-  [-44,44].forEach(wx=>{
-    const wr=19, wrot=(ms/1000)*speed*.35;
-    ctx.save(); ctx.translate(wx,th/2+3);
-    ctx.beginPath(); ctx.arc(0,0,wr,0,Math.PI*2);
-    const wg=ctx.createRadialGradient(-5,-5,2,0,0,wr);
-    wg.addColorStop(0,'#999'); wg.addColorStop(.6,'#555'); wg.addColorStop(1,'#1a1a1a');
-    ctx.fillStyle=wg; ctx.fill();
-    ctx.strokeStyle='#C8A040'; ctx.lineWidth=3; ctx.stroke();
-    for(let s=0;s<6;s++){
-      const a=wrot+s*Math.PI/3;
-      ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(Math.cos(a)*14,Math.sin(a)*14);
-      ctx.strokeStyle='#888'; ctx.lineWidth=2; ctx.stroke();
-    }
-    ctx.beginPath(); ctx.arc(0,0,4.5,0,Math.PI*2); ctx.fillStyle='#C8A040'; ctx.fill();
-    ctx.restore();
-  });
-
-  // Body
-  const bg2=ctx.createLinearGradient(-tw/2,-th/2,tw/2,th/2);
-  bg2.addColorStop(0,'#3e3e50'); bg2.addColorStop(.4,'#5c5c70'); bg2.addColorStop(1,'#2a2a3a');
-  ctx.fillStyle=bg2;
-  ctx.beginPath(); ctx.roundRect(-tw/2,-th/2,tw,th,10); ctx.fill();
-  ctx.strokeStyle='rgba(255,255,255,.12)'; ctx.lineWidth=2; ctx.stroke();
-
-  // Inner panel sheen
-  ctx.fillStyle='rgba(255,255,255,.05)';
-  ctx.beginPath(); ctx.roundRect(-tw/2+7,-th/2+7,tw-14,th-14,6); ctx.fill();
-
-  // Red stripe
-  ctx.fillStyle='#CC1A1A'; ctx.fillRect(-tw/2,-9,tw,13);
-  ctx.fillStyle='rgba(255,255,255,.85)'; ctx.fillRect(-tw/2,-9,tw,3);
-
-  // Headlight beam
-  const hb=ctx.createRadialGradient(tw/2+8,0,0,tw/2+8,0,60);
-  hb.addColorStop(0,'rgba(255,245,200,.85)'); hb.addColorStop(.35,'rgba(255,200,100,.3)'); hb.addColorStop(1,'transparent');
-  ctx.fillStyle=hb; ctx.fillRect(tw/2-5,-50,80,100);
-
-  // Headlight
-  ctx.fillStyle='#FFFDD0'; ctx.beginPath(); ctx.ellipse(tw/2,0,11,7.5,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle='rgba(255,255,200,.7)'; ctx.beginPath(); ctx.ellipse(tw/2,0,6,4,0,0,Math.PI*2); ctx.fill();
-
-  // Smoke stack
-  ctx.fillStyle='#2e2e2e'; ctx.beginPath(); ctx.roundRect(-32,-th/2-24,17,26,3); ctx.fill();
-  ctx.fillStyle='#484848'; ctx.beginPath(); ctx.roundRect(-34,-th/2-26,21,6,2); ctx.fill();
-
-  // Number plate
-  ctx.fillStyle='rgba(255,215,0,.92)'; ctx.beginPath(); ctx.roundRect(-22,-th/2+8,44,20,4); ctx.fill();
-  ctx.fillStyle='#000'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('No.'+(currentQ+1)+'号',0,-th/2+18);
-
-  ctx.restore();
-}
-
-function drawSpeedLines(ctx,W,H,ms){
-  const cx=W/2,cy=H*.5;
-  ctx.save(); ctx.globalAlpha=Math.min(.55,speed/32);
-  for(let i=0;i<44;i++){
-    const ang=(i/44)*Math.PI*2+(ms*.0004);
-    const ir=70+Math.random()*50;
-    const or=ir+55+Math.random()*speed*2.8;
-    const x1=cx+Math.cos(ang)*ir,y1=cy+Math.sin(ang)*ir;
-    const x2=cx+Math.cos(ang)*or,y2=cy+Math.sin(ang)*or;
-    const lg=ctx.createLinearGradient(x1,y1,x2,y2);
-    lg.addColorStop(0,'rgba(255,255,255,0)'); lg.addColorStop(1,'rgba(255,255,255,.5)');
-    ctx.strokeStyle=lg; ctx.lineWidth=.8+Math.random()*.8;
-    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawJunction(ctx,W,H,t){
-  const vanX=W/2,vanY=H*.22,groundY=H*.9,spread=W*.16;
-  const lt=Math.min(1,t);
-
-  // Fork rails
-  ctx.globalAlpha=lt*.9;
-  [[-1,1]].forEach(()=>{
-    // Left fork
-    ctx.beginPath();
-    ctx.moveTo(vanX,vanY+60);
-    ctx.quadraticCurveTo(vanX-spread*.5,vanY+(groundY-vanY)*.55,vanX-W*.38,groundY);
-    ctx.strokeStyle='#C8A040'; ctx.lineWidth=7; ctx.stroke();
-    ctx.strokeStyle='rgba(255,220,100,.45)'; ctx.lineWidth=2.5; ctx.stroke();
-    // Right fork
-    ctx.beginPath();
-    ctx.moveTo(vanX,vanY+60);
-    ctx.quadraticCurveTo(vanX+spread*.5,vanY+(groundY-vanY)*.55,vanX+W*.38,groundY);
-    ctx.strokeStyle='#C8A040'; ctx.lineWidth=7; ctx.stroke();
-    ctx.strokeStyle='rgba(255,220,100,.45)'; ctx.lineWidth=2.5; ctx.stroke();
-  });
-
-  // Big directional labels
-  const ly=H*.77;
-  ctx.font=`bold ${Math.floor(W*.042)}px 'Black Han Sans',sans-serif`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-
-  ctx.shadowBlur=35;
-  ctx.shadowColor='rgba(80,130,255,.95)';
-  ctx.fillStyle=`rgba(140,185,255,${lt})`;
-  ctx.fillText('◀  ひだり',W*.21,ly);
-
-  ctx.shadowColor='rgba(255,80,80,.95)';
-  ctx.fillStyle=`rgba(255,140,120,${lt})`;
-  ctx.fillText('みぎ  ▶',W*.79,ly);
-  ctx.shadowBlur=0;
-
-  // Blinking large arrows
-  const blink=Math.sin(Date.now()*.007);
-  if(blink>0){
-    ctx.globalAlpha=blink*lt*.75;
-    ctx.font=`bold ${Math.floor(W*.055)}px sans-serif`;
-    ctx.fillStyle='rgba(120,170,255,1)';
-    ctx.fillText('◀◀◀',W*.14,ly+62);
-    ctx.fillStyle='rgba(255,130,110,1)';
-    ctx.fillText('▶▶▶',W*.86,ly+62);
-  }
-  ctx.globalAlpha=1;
-}
-
-// ══════════════════════════════════════════
-//  QR (decorative canvas)
-// ══════════════════════════════════════════
 
 // ══════════════════════════════════════════
 //  CONFETTI / FIREWORKS
@@ -1032,13 +617,6 @@ window.onload=()=>{
   // PeerJS接続とQRコード生成をバックグラウンドで開始
   initPeer();
 };
-window.addEventListener('resize',()=>{
-  const c=document.getElementById('race-canvas');
-  if(c&&document.getElementById('screen-race').style.display!=='none'){
-    c.width=window.innerWidth; c.height=window.innerHeight;
-    canvasW=c.width; canvasH=c.height;
-  }
-});
 </script>
 </body>
 </html>
