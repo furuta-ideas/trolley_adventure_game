@@ -380,7 +380,7 @@ function startRace(){
 }
 
 function judgeAnswer(side){
-  const correct=QUESTIONS[currentQ].answer;
+  const correct=side;
   if(correct==='left'){
     document.getElementById('answer-left-panel').classList.add('correct-flash');
     document.getElementById('answer-right-panel').classList.add('wrong-dim');
