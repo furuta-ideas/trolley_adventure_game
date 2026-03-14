@@ -108,8 +108,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   <div class="title-sub">— TRIVIA BATTLE —</div>
   <div class="qr-section">
     <div class="qr-label">📱 参加者はこちらをスキャン</div>
-    <div class="qr-box"><canvas id="qr-canvas" width="130" height="130"></canvas></div>
-    <div class="qr-url" id="player-url">読み込み中...</div>
+    <div class="qr-box"><img id="qr-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAXIAAAFyAQAAAADAX2ykAAAC9ElEQVR4nO2cTY6bQBBGX6WRvGykHCBHgRvkSFFuBkeZA4wES0ugL4vuBjxSbI3CEJCqFhaYt/ikcnfXHzbxGeu/fQoH5513/kv50bK1Y4W1gLXMVj6gPK+O0eP8znyQJAniBDAbjDcBIW/ejSRpOEqP8/vxSEPIvmwGUFe8KmkCotIDmiFI3dn0O/8JPkrWpqsJ+hpo3qr/p8f5f+YfvTdXNB3AWGHNMCOYDtXj/FfweS8eb4LRjGa9BSBK6g7U4/xe/JzC4/JV0Opaa8cKejMzq4/S4/x+PNraVOKrFFXlwGtjHl9djM/xc7PkRxuvlgfqirvdv1fjN/7NGW45a9WlqyAaTYlz/16T128zszY5dDZrUxI8G8QJdYC1B+pxfi++gng3GgG9Ac2ADMCIQda85bhLjEfocX5fPu+7S60qbdLp1CWU/XkI5fZs+p1/Ybk+Gady4EY9tgzDUph2/16PL3ET5NA5FaHjxMbnaYl7fHVBPuW/KULuyjLNntbaWih5svv3YvyyP5cMd2knbbfrdfc+m37nn1tFbvga6mtMAOp/DhhUE4zVRNPNpKvT6Xf+hZXzdy1jQO4lrJFWKWz5+r8RYlU7h2fQ7/5pfxqzqpUyVukYVMN5kbZTSd6fU7/xTPq67cpC6cW35z7l21df5J3BK/c4/58tatWVgUl28p9KztfAwpHNC/c4/s5zXxqX/G5deL2XwLi1xz38vyLMWnDf9303BeeXcvxfkK4g5cFaevwKWTBgIE4zfJ/o2eP57RX59fwGg/3G3Un++G81QXmf4NRykx/kd+Yq0QgEj3g24yZq3m2jebjIIqfWrvg4H6HF+X/7h/YUl0urWIZ1ElSE7P38vxn+cb1ce2DAEYTLie6W+nY20zs+m3/nn9uDfscYWr1qqWa5D7ofocf4r+M18Trf2Esab6OtcxMrIOfU7/1fLU7GwtPE/TG2snPePrsebXjMb8/9ncN75E/F/AEX4Os04tPA6AAAAAElFTkSuQmCC" alt="QR Code" style="width:130px;height:130px;image-rendering:pixelated;"></div>
+    <div class="qr-url" id="player-url">https://furuta-ideas.github.io/trolley_adventure_game/player</div>
   </div>
   <div class="participants-list" id="participants-list">
     <span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると表示されます</span>
@@ -833,24 +833,6 @@ function drawJunction(ctx,W,H,t){
 // ══════════════════════════════════════════
 //  QR (decorative canvas)
 // ══════════════════════════════════════════
-function drawSimpleQR(){
-  const url=window.location.href.replace('monitor.html','player.html').replace('monitor','player');
-  document.getElementById('player-url').textContent=url;
-  const canvas=document.getElementById('qr-canvas');
-  const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#fff'; ctx.fillRect(0,0,130,130);
-  ctx.fillStyle='#000';
-  [[0,0],[90,0],[0,90]].forEach(([x,y])=>{
-    ctx.fillRect(x,y,38,38); ctx.fillStyle='#fff'; ctx.fillRect(x+4,y+4,30,30);
-    ctx.fillStyle='#000'; ctx.fillRect(x+9,y+9,20,20); ctx.fillStyle='#fff'; ctx.fillRect(x+14,y+14,10,10);
-    ctx.fillStyle='#000';
-  });
-  for(let i=0;i<8;i++) for(let j=0;j<8;j++){
-    if(Math.random()>.5&&!(i<3&&j<3)&&!(i>4&&j<3)&&!(i<3&&j>4)){
-      ctx.fillRect(8+i*15,8+j*15,12,12);
-    }
-  }
-}
 
 // ══════════════════════════════════════════
 //  CONFETTI / FIREWORKS
@@ -985,7 +967,6 @@ function playSound(type){
 window.onload=()=>{
   // 起動時に前回セッションのキャッシュを完全クリア
   try{ localStorage.removeItem('trivia-state'); }catch(e){}
-  drawSimpleQR();
   showScreen('title');
 };
 window.addEventListener('resize',()=>{
