@@ -12,7 +12,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 
 /* ── TITLE ── */
 #screen-title{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:radial-gradient(ellipse at center,#1a1040 0%,#0A0A1A 70%);position:relative;overflow:hidden;}
-.title-content{display:flex;align-items:flex-start;gap:40px;margin-bottom:32px;}
+.title-content{position:relative;display:flex;flex-direction:column;align-items:center;margin-bottom:32px;}
 .stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(1px 1px at 15% 20%,#fff,transparent),radial-gradient(1px 1px at 75% 8%,#fff,transparent),radial-gradient(2px 2px at 50% 55%,rgba(255,215,0,.8),transparent),radial-gradient(1px 1px at 8% 78%,#fff,transparent),radial-gradient(1px 1px at 92% 65%,#fff,transparent),radial-gradient(1px 1px at 30% 40%,rgba(255,215,0,.5),transparent),radial-gradient(1px 1px at 60% 88%,#fff,transparent),radial-gradient(2px 2px at 85% 35%,rgba(255,215,0,.4),transparent),radial-gradient(1px 1px at 42% 12%,#fff,transparent);animation:twinkle 3s infinite alternate;}
 @keyframes twinkle{0%{opacity:.5}100%{opacity:1}}
 .title-badge{background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:1.1rem;padding:6px 24px;border-radius:30px;margin-bottom:18px;letter-spacing:3px;animation:pulse-b 2s infinite;}
@@ -21,7 +21,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .title-sub{font-size:1.3rem;color:rgba(255,255,255,.65);letter-spacing:4px;margin-bottom:40px;}
 .qr-section{text-align:center;margin-bottom:24px;}
 .qr-box{width:300px;height:300px;background:#fff;border-radius:16px;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 0 60px rgba(255,215,0,.3);}
-.participants-list{display:flex;flex-direction:column;gap:8px;min-height:36px;max-height:70vh;overflow-y:auto;}
+.participants-list{position:absolute;top:0;left:calc(100% + 30px);display:flex;flex-direction:column;gap:8px;min-height:36px;max-height:70vh;overflow-y:auto;white-space:nowrap;}
 .participant-chip{background:rgba(255,215,0,.13);border:1px solid rgba(255,215,0,.4);color:var(--gold);padding:8px 22px;border-radius:24px;font-size:1.8rem;font-weight:700;animation:chipIn .3s ease;}
 @keyframes chipIn{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
 .start-btn{background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.4rem;padding:16px 56px;border-radius:50px;cursor:pointer;letter-spacing:4px;box-shadow:0 8px 40px rgba(255,165,0,.6);transition:all .2s;}
@@ -37,7 +37,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .q-bg{position:absolute;inset:0;background:url('Select.jpg') center/cover no-repeat;}
 .q-track{display:none;}
 .q-number-badge{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:.95rem;padding:5px 22px;border-radius:30px;letter-spacing:3px;z-index:10;}
-.question-text{position:absolute;top:11%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:2px 2px 0 #000;z-index:10;color:#333;padding:10px 16px;background:transparent;}
+.question-text{position:absolute;top:10%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:2px 2px 0 #000;z-index:10;color:#333;padding:10px 16px;background:transparent;}
 .choice-left{position:absolute;left:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-right{position:absolute;right:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
@@ -47,7 +47,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .choice-names{position:absolute;top:5%;left:5%;right:5%;display:flex;flex-wrap:wrap;gap:5px;z-index:10;pointer-events:none;}
 .choice-names-left{justify-content:flex-start;}
 .choice-names-right{justify-content:flex-end;}
-.choice-name-chip{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;padding:8px 20px;border-radius:20px;font-size:3rem;font-weight:700;animation:chipIn .3s ease;backdrop-filter:blur(4px);}
+.choice-name-chip{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;padding:10px 24px;border-radius:24px;font-size:6rem;font-weight:700;animation:chipIn .3s ease;backdrop-filter:blur(4px);}
 .answer-count{position:absolute;bottom:18px;right:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:9px 18px;font-size:1rem;z-index:10;}
 .start-race-btn{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.25rem;padding:14px 46px;border-radius:50px;cursor:pointer;letter-spacing:3px;box-shadow:0 8px 40px rgba(255,165,0,.6);z-index:10;animation:pulse-b 2s infinite;transition:transform .1s;}
 .start-race-btn:hover{transform:translateX(-50%) scale(1.05);}
@@ -69,7 +69,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .answer-left{position:absolute;left:0;top:0;width:50%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#081a6e,#1540b8);border-right:4px solid rgba(255,255,255,.08);transition:all .5s;}
 .answer-right{position:absolute;right:0;top:0;width:50%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(225deg,#6e0808,#b81515);transition:all .5s;}
 .answer-names{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px;max-width:90%;padding:0 8px;}
-.answer-name-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:6px 16px;border-radius:18px;font-size:1.4rem;font-weight:700;animation:chipIn .3s ease;}
+.answer-name-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 20px;border-radius:20px;font-size:2.8rem;font-weight:700;animation:chipIn .3s ease;}
 .answer-choice-label{font-size:1.1rem;opacity:.65;letter-spacing:3px;margin-bottom:14px;}
 .answer-choice-text{font-size:clamp(2.4rem,4.8vw,5rem);font-weight:900;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
 .answer-btn{margin-top:28px;background:rgba(255,255,255,.18);border:3px solid rgba(255,255,255,.5);color:#fff;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1rem;padding:12px 32px;border-radius:50px;cursor:pointer;letter-spacing:2px;transition:all .2s;backdrop-filter:blur(4px);}
@@ -219,6 +219,8 @@ const QUESTIONS=[
 // ══════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════
+const ANIMAL_EMOJIS=['🐶','🐱','🐻','🐼','🦊','🐸','🐵','🦁','🐯','🐰','🐨','🐷','🐮','🐔','🐧','🐙','🦄','🐝','🦋','🐳'];
+let animalIndex=0;
 let currentQ=0, participants={}, answeredCount=0;
 let raceAccepting=false;  // ★ トロッコ中も回答受付フラグ
 let raceTimerInterval=null, countdownVal=10;
@@ -268,7 +270,9 @@ function sendToPlayers(d){
 
 function handleMsg(d){
   if(d.type==='join'){
-    participants[d.id]={name:d.name,answers:Array(QUESTIONS.length).fill(null)};
+    const emoji=ANIMAL_EMOJIS[animalIndex % ANIMAL_EMOJIS.length];
+    animalIndex++;
+    participants[d.id]={name:d.name,emoji,answers:Array(QUESTIONS.length).fill(null)};
     updateChips(); updateAnswerCount();
   }
   if(d.type==='answer'){
@@ -283,10 +287,10 @@ function handleMsg(d){
 
 function updateChips(){
   const list=document.getElementById('participants-list');
-  const names=Object.values(participants).map(p=>p.name);
-  list.innerHTML=names.length===0
-    ?'<span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると表示されます</span>'
-    :names.map(n=>`<span class="participant-chip">👤 ${n}</span>`).join('');
+  const pArr=Object.values(participants);
+  list.innerHTML=pArr.length===0
+    ?'<span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると<br>表示されます</span>'
+    :pArr.map(p=>`<span class="participant-chip">${p.emoji} ${p.name}</span>`).join('');
 }
 function updateAnswerCount(){
   const total=Object.keys(participants).length;
@@ -297,15 +301,15 @@ function updateAnswerCount(){
   updateChoiceNames();
 }
 function updateChoiceNames(){
-  const leftNames=[],rightNames=[];
+  const leftPlayers=[],rightPlayers=[];
   Object.values(participants).forEach(p=>{
-    if(p.answers[currentQ]==='left') leftNames.push(p.name);
-    else if(p.answers[currentQ]==='right') rightNames.push(p.name);
+    if(p.answers[currentQ]==='left') leftPlayers.push(p);
+    else if(p.answers[currentQ]==='right') rightPlayers.push(p);
   });
-  document.getElementById('choice-left-names').innerHTML=leftNames.map(n=>`<span class="choice-name-chip">${n}</span>`).join('');
-  document.getElementById('choice-right-names').innerHTML=rightNames.map(n=>`<span class="choice-name-chip">${n}</span>`).join('');
-  document.getElementById('answer-left-names').innerHTML=leftNames.map(n=>`<span class="answer-name-chip">${n}</span>`).join('');
-  document.getElementById('answer-right-names').innerHTML=rightNames.map(n=>`<span class="answer-name-chip">${n}</span>`).join('');
+  document.getElementById('choice-left-names').innerHTML=leftPlayers.map(p=>`<span class="choice-name-chip">${p.emoji} ${p.name}</span>`).join('');
+  document.getElementById('choice-right-names').innerHTML=rightPlayers.map(p=>`<span class="choice-name-chip">${p.emoji} ${p.name}</span>`).join('');
+  document.getElementById('answer-left-names').innerHTML=leftPlayers.map(p=>`<span class="answer-name-chip">${p.emoji} ${p.name}</span>`).join('');
+  document.getElementById('answer-right-names').innerHTML=rightPlayers.map(p=>`<span class="answer-name-chip">${p.emoji} ${p.name}</span>`).join('');
 }
 
 // ══════════════════════════════════════════
@@ -318,7 +322,7 @@ function showScreen(name){
   });
   const el=document.getElementById('screen-'+name);
   if(!el)return;
-  const flexScreens=['splash','title','complete'];
+  const flexScreens=['splash','title'];
   el.style.display=flexScreens.includes(name)?'flex':'block';
 }
 
@@ -412,7 +416,7 @@ function startRace(){
       v.pause();
       stopBGM();
       playSound('brake');
-      setTimeout(()=>showScreen('answer'),700);
+      setTimeout(()=>{updateChoiceNames();showScreen('answer');playBGM('drumroll');},700);
     }
   },1000);
 }
@@ -467,6 +471,7 @@ function initAllState(){
   raceAccepting=false;
   countdownVal=10;
   participants={};
+  animalIndex=0;
 
   // ── 動画リセット
   const video=document.getElementById('race-video');
@@ -576,6 +581,34 @@ function playBGM(type){
         o.start(ctx.currentTime+i*.17); o.stop(ctx.currentTime+i*.17+.18);
       });
     });
+  }
+
+  if(type==='drumroll'){
+    bgmGain.gain.setValueAtTime(.35,ctx.currentTime);
+    let t=ctx.currentTime;
+    const play=()=>{
+      // スネアドラムロール風：高速な短いノイズバースト
+      for(let i=0;i<32;i++){
+        const bLen=.06;
+        const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
+        o.type='triangle'; o.frequency.value=180+Math.random()*40;
+        f.type='highpass'; f.frequency.value=1000;
+        o.connect(f); f.connect(g); g.connect(bgmGain);
+        g.gain.setValueAtTime(0,t+i*bLen);
+        g.gain.linearRampToValueAtTime(.5,t+i*bLen+.008);
+        g.gain.linearRampToValueAtTime(.08,t+i*bLen+bLen*.9);
+        o.start(t+i*bLen); o.stop(t+i*bLen+bLen);
+        // ノイズ風の倍音
+        const o2=ctx.createOscillator(),g2=ctx.createGain();
+        o2.type='square'; o2.frequency.value=350+Math.random()*100;
+        o2.connect(g2); g2.connect(bgmGain);
+        g2.gain.setValueAtTime(0,t+i*bLen);
+        g2.gain.linearRampToValueAtTime(.15,t+i*bLen+.005);
+        g2.gain.linearRampToValueAtTime(0,t+i*bLen+bLen*.7);
+        o2.start(t+i*bLen); o2.stop(t+i*bLen+bLen);
+      }
+    };
+    play(); bgmNode=setInterval(()=>{t=ctx.currentTime;play();},32*.06*1000);
   }
 
   if(type==='ambient'){

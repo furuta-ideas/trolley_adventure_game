@@ -57,7 +57,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;hei
 
 /* RESULT */
 #screen-result{display:none;height:100dvh;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:30px;position:relative;}
-.result-correct{background:url('Correcrt.jpg') center/50% auto no-repeat #0a3a1a;}
+.result-correct{background:url('Correcrt.jpg') center/contain no-repeat #0a3a1a;}
 .result-wrong{background:url('InCorrect.jpg') center/cover no-repeat #3a0a0a;}
 .result-mark{font-size:8rem;animation:mark-pop .6s cubic-bezier(.34,1.56,.64,1) forwards;line-height:1;}
 @keyframes mark-pop{0%{transform:scale(.2) rotate(-20deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
