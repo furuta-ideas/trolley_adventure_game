@@ -37,7 +37,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .q-bg{position:absolute;inset:0;background:url('Select.jpg') center/cover no-repeat;}
 .q-track{display:none;}
 .q-number-badge{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:.95rem;padding:5px 22px;border-radius:30px;letter-spacing:3px;z-index:10;}
-.question-text{position:absolute;top:10%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:2px 2px 0 #000;z-index:10;color:#333;padding:10px 16px;background:transparent;}
+.question-text{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:2px 2px 0 #000;z-index:10;color:#333;padding:10px 16px;background:transparent;}
 .choice-left{position:absolute;left:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-right{position:absolute;right:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
@@ -328,6 +328,7 @@ function showScreen(name){
 
 function exitSplash(){
   showScreen('title');
+  playBGM('opening');
 }
 
 // ══════════════════════════════════════════
@@ -346,10 +347,11 @@ function startGame(){
 }
 
 function startFirstQuestion(){
+  stopBGM(); // オープニングBGM停止
   loadQuestion();
   showScreen('question');
   sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right});
-  playBGM('ambient');
+  playBGM('select');
 }
 
 function loadQuestion(){
@@ -387,6 +389,7 @@ function loadQuestion(){
 function startRace(){
   if(raceTimerInterval){ clearInterval(raceTimerInterval); raceTimerInterval=null; }
 
+  stopBGM(); // select_gamen BGM停止
   raceAccepting=true;
   showScreen('race');
 
@@ -446,11 +449,12 @@ function nextQuestion(){
   loadQuestion();
   showScreen('question');
   sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right});
+  playBGM('select');
 }
 
 function showComplete(){
+  stopBGM();
   showScreen('complete');
-  playBGM('fanfare');
   sendToPlayers({type:'complete'});
 }
 
@@ -530,131 +534,41 @@ function spawnFireworks(){
 }
 
 // ══════════════════════════════════════════
-//  AUDIO (Web Audio API)
+//  AUDIO (ファイルベース)
 // ══════════════════════════════════════════
-let audioCtx=null, bgmNode=null, bgmGain=null;
-function getACtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+const audioOpening=new Audio('opning_bgm.mp3');
+const audioSelect=new Audio('select_gamen.mp3');
+const audioDrumroll=new Audio('dramrool.mp3');
+audioOpening.loop=true;
+audioSelect.loop=true;
+audioDrumroll.loop=false;
+let currentBGM=null;
 
 function playBGM(type){
   stopBGM();
-  const ctx=getACtx();
-  bgmGain=ctx.createGain(); bgmGain.connect(ctx.destination);
-
-  if(type==='race'){
-    bgmGain.gain.setValueAtTime(.28,ctx.currentTime);
-    const scale=[220,247,294,330,370,440,494,523,587,659,698,784];
-    let t=ctx.currentTime;
-    const loop=()=>{
-      const bar=.125;
-      for(let i=0;i<32;i++){
-        const osc=ctx.createOscillator(),g=ctx.createGain();
-        osc.connect(g); g.connect(bgmGain);
-        osc.frequency.value=scale[(i*3)%12]*(i%16<8?1:2);
-        osc.type=(i%4===0)?'sawtooth':'square';
-        g.gain.setValueAtTime(0,t+i*bar);
-        g.gain.linearRampToValueAtTime(i%4===0?.5:.28,t+i*bar+.012);
-        g.gain.linearRampToValueAtTime(0,t+i*bar+bar*.82);
-        osc.start(t+i*bar); osc.stop(t+i*bar+bar);
-        if(i%4===0){
-          const p=ctx.createOscillator(),pg=ctx.createGain();
-          p.connect(pg); pg.connect(bgmGain);
-          p.type='square'; p.frequency.value=55;
-          pg.gain.setValueAtTime(.55,t+i*bar);
-          pg.gain.linearRampToValueAtTime(0,t+i*bar+.09);
-          p.start(t+i*bar); p.stop(t+i*bar+.1);
-        }
-      }
-    };
-    loop(); bgmNode=setInterval(()=>{t=ctx.currentTime;loop();},32*.125*1000);
+  if(type==='opening'){
+    currentBGM=audioOpening;
+    audioOpening.currentTime=0;
+    audioOpening.play().catch(e=>console.warn('Audio play failed:',e));
   }
-
-  if(type==='fanfare'){
-    bgmGain.gain.setValueAtTime(.4,ctx.currentTime);
-    [523,659,784,1047,784,659,523,392,523,659,784,1047,784,1047,1175,1047].forEach((f,i)=>{
-      ['triangle','sawtooth'].forEach((tp,ti)=>{
-        const o=ctx.createOscillator(),g=ctx.createGain();
-        o.connect(g); g.connect(bgmGain);
-        o.type=tp; o.frequency.value=f*(ti===1?.5:1);
-        g.gain.setValueAtTime(0,ctx.currentTime+i*.17);
-        g.gain.linearRampToValueAtTime(ti===0?.45:.15,ctx.currentTime+i*.17+.04);
-        g.gain.linearRampToValueAtTime(0,ctx.currentTime+i*.17+.16);
-        o.start(ctx.currentTime+i*.17); o.stop(ctx.currentTime+i*.17+.18);
-      });
-    });
+  if(type==='select'){
+    currentBGM=audioSelect;
+    audioSelect.currentTime=0;
+    audioSelect.play().catch(e=>console.warn('Audio play failed:',e));
   }
-
   if(type==='drumroll'){
-    bgmGain.gain.setValueAtTime(.35,ctx.currentTime);
-    let t=ctx.currentTime;
-    const play=()=>{
-      // スネアドラムロール風：高速な短いノイズバースト
-      for(let i=0;i<32;i++){
-        const bLen=.06;
-        const o=ctx.createOscillator(),g=ctx.createGain(),f=ctx.createBiquadFilter();
-        o.type='triangle'; o.frequency.value=180+Math.random()*40;
-        f.type='highpass'; f.frequency.value=1000;
-        o.connect(f); f.connect(g); g.connect(bgmGain);
-        g.gain.setValueAtTime(0,t+i*bLen);
-        g.gain.linearRampToValueAtTime(.5,t+i*bLen+.008);
-        g.gain.linearRampToValueAtTime(.08,t+i*bLen+bLen*.9);
-        o.start(t+i*bLen); o.stop(t+i*bLen+bLen);
-        // ノイズ風の倍音
-        const o2=ctx.createOscillator(),g2=ctx.createGain();
-        o2.type='square'; o2.frequency.value=350+Math.random()*100;
-        o2.connect(g2); g2.connect(bgmGain);
-        g2.gain.setValueAtTime(0,t+i*bLen);
-        g2.gain.linearRampToValueAtTime(.15,t+i*bLen+.005);
-        g2.gain.linearRampToValueAtTime(0,t+i*bLen+bLen*.7);
-        o2.start(t+i*bLen); o2.stop(t+i*bLen+bLen);
-      }
-    };
-    play(); bgmNode=setInterval(()=>{t=ctx.currentTime;play();},32*.06*1000);
-  }
-
-  if(type==='ambient'){
-    bgmGain.gain.setValueAtTime(.06,ctx.currentTime);
-    const play=()=>{
-      const o=ctx.createOscillator(),g=ctx.createGain();
-      o.connect(g); g.connect(bgmGain); o.type='sine'; o.frequency.value=220;
-      g.gain.setValueAtTime(.1,ctx.currentTime); g.gain.linearRampToValueAtTime(0,ctx.currentTime+1.8);
-      o.start(ctx.currentTime); o.stop(ctx.currentTime+1.8);
-    };
-    play(); bgmNode=setInterval(play,2200);
+    currentBGM=audioDrumroll;
+    audioDrumroll.currentTime=0;
+    audioDrumroll.play().catch(e=>console.warn('Audio play failed:',e));
   }
 }
 
 function stopBGM(){
-  if(bgmNode){clearInterval(bgmNode);bgmNode=null;}
-  if(bgmGain){try{bgmGain.disconnect();}catch(e){}bgmGain=null;}
+  if(currentBGM){currentBGM.pause();currentBGM.currentTime=0;currentBGM=null;}
 }
 
 function playSound(type){
-  const ctx=getACtx(),g=ctx.createGain(); g.connect(ctx.destination);
-  if(type==='brake'){
-    [900,450,200,80].forEach((f,i)=>{
-      const o=ctx.createOscillator(),og=ctx.createGain();
-      o.connect(og); og.connect(g); o.type='sawtooth'; o.frequency.value=f;
-      og.gain.setValueAtTime(0,ctx.currentTime+i*.14);
-      og.gain.linearRampToValueAtTime(.35,ctx.currentTime+i*.14+.015);
-      og.gain.linearRampToValueAtTime(0,ctx.currentTime+i*.14+.18);
-      o.start(ctx.currentTime+i*.14); o.stop(ctx.currentTime+i*.14+.2);
-    });
-  }
-  if(type==='result'){
-    [523,659,784,1047,1319].forEach((f,i)=>{
-      const o=ctx.createOscillator(),og=ctx.createGain();
-      o.connect(og); og.connect(g); o.type='triangle'; o.frequency.value=f;
-      og.gain.setValueAtTime(0,ctx.currentTime+i*.13);
-      og.gain.linearRampToValueAtTime(.42,ctx.currentTime+i*.13+.04);
-      og.gain.linearRampToValueAtTime(0,ctx.currentTime+i*.13+.28);
-      o.start(ctx.currentTime+i*.13); o.stop(ctx.currentTime+i*.13+.3);
-    });
-    const b=ctx.createOscillator(),bg=ctx.createGain();
-    b.connect(bg); bg.connect(g); b.type='square'; b.frequency.value=130;
-    bg.gain.setValueAtTime(.18,ctx.currentTime+.7);
-    bg.gain.linearRampToValueAtTime(0,ctx.currentTime+1.15);
-    b.start(ctx.currentTime+.7); b.stop(ctx.currentTime+1.2);
-  }
+  // brake sound no longer needed (removed Web Audio)
 }
 
 // ══════════════════════════════════════════

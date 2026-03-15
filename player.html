@@ -172,7 +172,6 @@ let myId=null, myName='', myAnswers=[], currentQ=0;
 let currentLeft='', currentRight='';
 let answering=false;  // ★ 回答受付中フラグ（question & race両フェーズで true）
 let correctCount=0;  // 正解数カウント
-let audioCtx=null;
 let gameChannel=null;
 
 try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleServerMsg(e.data); }catch(e){}
@@ -292,7 +291,6 @@ function joinGame(){
   document.getElementById('waiting-name').textContent=myName+' さん';
   showScreen('waiting');
   sendToHost({type:'join',id:myId,name:myName});
-  getACtx();
 }
 
 function showAnswerScreen(raceMode){
@@ -318,6 +316,7 @@ function submitAnswer(choice){
   if(myAnswers[currentQ]!==null&&myAnswers[currentQ]!==undefined)return; // 二重タップ防止
   answering=false; // 即座にロック
   myAnswers[currentQ]=choice;
+  playSentaku();
 
   document.getElementById('btn-left').className='choice-left-btn'+(choice==='left'?' selected':' not-selected');
   document.getElementById('btn-right').className='choice-right-btn'+(choice==='right'?' selected':' not-selected');
@@ -377,30 +376,24 @@ function spawnSmallConfetti(){
 }
 
 // ══════════════════════════════════════════
-//  AUDIO
+//  AUDIO (ファイルベース)
 // ══════════════════════════════════════════
-function getACtx(){if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+const audioSentaku=new Audio('sentaku.mp3');
+const audioSeikai=new Audio('seikai.mp3');
+const audioMachigai=new Audio('machigai.mp3');
+
+function playSentaku(){
+  audioSentaku.currentTime=0;
+  audioSentaku.play().catch(e=>console.warn('Audio play failed:',e));
+}
 
 function playResultSound(ok){
-  const ctx=getACtx(),g=ctx.createGain(); g.connect(ctx.destination); g.gain.setValueAtTime(.4,ctx.currentTime);
   if(ok){
-    [523,659,784,1047].forEach((f,i)=>{
-      const o=ctx.createOscillator(),og=ctx.createGain();
-      o.connect(og); og.connect(g); o.type='triangle'; o.frequency.value=f;
-      og.gain.setValueAtTime(0,ctx.currentTime+i*.13);
-      og.gain.linearRampToValueAtTime(.5,ctx.currentTime+i*.13+.04);
-      og.gain.linearRampToValueAtTime(0,ctx.currentTime+i*.13+.26);
-      o.start(ctx.currentTime+i*.13); o.stop(ctx.currentTime+i*.13+.3);
-    });
+    audioSeikai.currentTime=0;
+    audioSeikai.play().catch(e=>console.warn('Audio play failed:',e));
   }else{
-    // ブザー2連発
-    [180,120].forEach((f,i)=>{
-      const o=ctx.createOscillator(),og=ctx.createGain();
-      o.connect(og); og.connect(g); o.type='square'; o.frequency.value=f;
-      og.gain.setValueAtTime(.4,ctx.currentTime+i*.55);
-      og.gain.linearRampToValueAtTime(0,ctx.currentTime+i*.55+.48);
-      o.start(ctx.currentTime+i*.55); o.stop(ctx.currentTime+i*.55+.5);
-    });
+    audioMachigai.currentTime=0;
+    audioMachigai.play().catch(e=>console.warn('Audio play failed:',e));
   }
 }
 
