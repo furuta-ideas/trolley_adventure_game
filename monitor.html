@@ -37,7 +37,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .q-bg{position:absolute;inset:0;background:url('Select.jpg') center/cover no-repeat;}
 .q-track{display:none;}
 .q-number-badge{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:.95rem;padding:5px 22px;border-radius:30px;letter-spacing:3px;z-index:10;}
-.question-text{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:2px 2px 0 #000;z-index:10;color:#333;padding:10px 16px;background:transparent;}
+.question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:2px 2px 0 #000;z-index:10;color:#333;padding:10px 16px;background:transparent;}
 .choice-left{position:absolute;left:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-right{position:absolute;right:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
@@ -68,7 +68,9 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 #screen-answer{display:none;height:100vh;position:relative;overflow:hidden;background:#0A0A1A;}
 .answer-left{position:absolute;left:0;top:0;width:50%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#081a6e,#1540b8);border-right:4px solid rgba(255,255,255,.08);transition:all .5s;}
 .answer-right{position:absolute;right:0;top:0;width:50%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(225deg,#6e0808,#b81515);transition:all .5s;}
-.answer-names{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:16px;max-width:90%;padding:0 8px;}
+.answer-names{position:absolute;top:10px;display:flex;flex-direction:column;gap:6px;max-height:90%;overflow-y:auto;padding:8px;}
+.answer-names-left{left:10px;}
+.answer-names-right{right:10px;align-items:flex-end;}
 .answer-name-chip{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.35);color:#fff;padding:8px 20px;border-radius:20px;font-size:2.8rem;font-weight:700;animation:chipIn .3s ease;}
 .answer-choice-label{font-size:1.1rem;opacity:.65;letter-spacing:3px;margin-bottom:14px;}
 .answer-choice-text{font-size:clamp(2.4rem,4.8vw,5rem);font-weight:900;text-shadow:2px 2px 0 rgba(0,0,0,.5);}
@@ -181,13 +183,13 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   <div class="answer-left" id="answer-left-panel">
     <div class="answer-choice-label">◀ ひだり</div>
     <div class="answer-choice-text" id="answer-left-text">左</div>
-    <div class="answer-names" id="answer-left-names"></div>
+    <div class="answer-names answer-names-left" id="answer-left-names"></div>
     <button class="answer-btn" onclick="judgeAnswer('left')" id="btn-judge-left">✅ これが正解！</button>
   </div>
   <div class="answer-right" id="answer-right-panel">
     <div class="answer-choice-label">みぎ ▶</div>
     <div class="answer-choice-text" id="answer-right-text">右</div>
-    <div class="answer-names" id="answer-right-names"></div>
+    <div class="answer-names answer-names-right" id="answer-right-names"></div>
     <button class="answer-btn" onclick="judgeAnswer('right')" id="btn-judge-right">✅ これが正解！</button>
   </div>
   <div class="answer-divider">
@@ -327,17 +329,20 @@ function showScreen(name){
 }
 
 function exitSplash(){
-  showScreen('title');
   playBGM('opening');
+  showScreen('title');
 }
 
 // ══════════════════════════════════════════
 //  GAME FLOW
 // ══════════════════════════════════════════
 function startGame(){
-  // 参加者リストを保持しつつ全状態を初期化
+  // 参加者リストを保持しつつ全状態を初期化（BGMは継続）
+  const savedBGM=currentBGM;
+  currentBGM=null; // initAllState内のstopBGMをスキップ
   const savedParticipants = {...participants};
   initAllState();
+  currentBGM=savedBGM; // BGM復帰（オープニングBGM継続）
   participants = savedParticipants;
   Object.values(participants).forEach(p=>{ p.answers=Array(QUESTIONS.length).fill(null); });
 
