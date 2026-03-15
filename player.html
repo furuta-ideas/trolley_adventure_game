@@ -188,24 +188,71 @@ setInterval(()=>{
 },400);
 
 // ══════════════════════════════════════════
-//  PeerJS — クロスデバイス通信
+//  PeerJS — クロスデバイス通信（自動再接続付き）
 // ══════════════════════════════════════════
-let peerConn=null;
+let peerConn=null, peerInstance=null, peerRoom=null;
+let reconnecting=false;
+
 function initPeerConnection(){
   const params=new URLSearchParams(window.location.search);
-  const room=params.get('room');
-  if(!room)return;
-  try{
-    const peer=new Peer();
-    peer.on('open',()=>{
-      const conn=peer.connect('trolley-'+room);
-      conn.on('open',()=>{ peerConn=conn; console.log('PeerJS connected to monitor'); });
-      conn.on('data',(data)=>{ handleServerMsg(data); });
-      conn.on('close',()=>{ peerConn=null; });
-    });
-    peer.on('error',(err)=>{ console.warn('PeerJS error:',err); });
-  }catch(e){ console.warn('PeerJS unavailable:',e); }
+  peerRoom=params.get('room');
+  if(!peerRoom)return;
+  connectPeer();
 }
+
+function connectPeer(){
+  if(!peerRoom)return;
+  if(reconnecting)return;
+  reconnecting=true;
+
+  // 既存のpeerを破棄
+  if(peerInstance){
+    try{peerInstance.destroy();}catch(e){}
+    peerInstance=null; peerConn=null;
+  }
+
+  try{
+    peerInstance=new Peer();
+    peerInstance.on('open',()=>{
+      reconnecting=false;
+      const conn=peerInstance.connect('trolley-'+peerRoom);
+      conn.on('open',()=>{
+        peerConn=conn;
+        console.log('PeerJS connected to monitor');
+        // 再接続時に自動再参加
+        if(myId&&myName){
+          sendToHost({type:'join',id:myId,name:myName});
+        }
+      });
+      conn.on('data',(data)=>{ handleServerMsg(data); });
+      conn.on('close',()=>{ peerConn=null; console.log('PeerJS connection closed'); });
+      conn.on('error',(err)=>{ console.warn('PeerJS conn error:',err); peerConn=null; });
+    });
+    peerInstance.on('error',(err)=>{
+      console.warn('PeerJS error:',err);
+      reconnecting=false;
+      peerConn=null;
+    });
+    peerInstance.on('disconnected',()=>{
+      reconnecting=false;
+      peerConn=null;
+    });
+  }catch(e){
+    console.warn('PeerJS unavailable:',e);
+    reconnecting=false;
+  }
+}
+
+// ★ 画面復帰時に自動再接続
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&peerRoom){
+    // 接続が切れていたら再接続
+    if(!peerConn||!peerInstance||peerInstance.disconnected||peerInstance.destroyed){
+      console.log('Page visible: reconnecting PeerJS...');
+      connectPeer();
+    }
+  }
+});
 
 function handleServerMsg(d){
   // ★ ゲーム初期化シグナル：player側を完全リセット
