@@ -37,7 +37,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .q-bg{position:absolute;inset:0;background:url('Select.jpg') center/cover no-repeat;}
 .q-track{display:none;}
 .q-number-badge{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:.95rem;padding:5px 22px;border-radius:30px;letter-spacing:3px;z-index:10;}
-.question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.96rem,3.5vw,3.36rem);line-height:1.3;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,0 0 8px rgba(255,255,255,.8);z-index:10;color:#333;padding:10px 16px;background:transparent;}
+.question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.5rem,3.0vw,3rem);line-height:1.3;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,0 0 8px rgba(255,255,255,.8);z-index:10;color:#333;padding:10px 16px;background:transparent;}
 .choice-left{position:absolute;left:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-right{position:absolute;right:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
@@ -243,12 +243,39 @@ function initPeer(){
     peerInstance=new Peer('trolley-'+roomId);
     peerInstance.on('open',()=>{ console.log('PeerJS ready, room:',roomId); generateQR(); });
     peerInstance.on('connection',(conn)=>{
-      conn.on('open',()=>{ playerConns[conn.peer]=conn; });
-      conn.on('data',(data)=>{ handleMsg(data, conn); });
+      conn.on('open',()=>{
+        playerConns[conn.peer]=conn;
+        // ★ 接続確立時にゲーム進行中なら即座にsync_stateを送信
+        sendCurrentStateToConn(conn);
+      });
+      conn.on('data',(data)=>{
+        // ★ data受信時にもplayerConnsに登録（openより先にdataが届く場合の保険）
+        if(!playerConns[conn.peer]) playerConns[conn.peer]=conn;
+        handleMsg(data, conn);
+      });
       conn.on('close',()=>{ delete playerConns[conn.peer]; });
     });
     peerInstance.on('error',(err)=>{ console.warn('PeerJS error:',err); generateQR(); });
   }catch(e){ console.warn('PeerJS unavailable:',e); generateQR(); }
+}
+
+// ★ 特定コネクションに現在のゲーム状態を送信（途中参加即時同期用）
+function sendCurrentStateToConn(conn){
+  const qScreen=document.getElementById('screen-question');
+  const rScreen=document.getElementById('screen-race');
+  const aScreen=document.getElementById('screen-answer');
+  const cScreen=document.getElementById('screen-complete');
+  const isInGame=qScreen.style.display!=='none'||rScreen.style.display!=='none'||aScreen.style.display!=='none';
+  const isComplete=cScreen.style.display!=='none';
+  if(isInGame&&currentQ<QUESTIONS.length){
+    const q=QUESTIONS[currentQ];
+    const rVis=rScreen.style.display!=='none';
+    const aVis=aScreen.style.display!=='none';
+    const phase=rVis?'race':(aVis?'answer':'question');
+    try{conn.send({type:'sync_state',q:currentQ,left:q.left,right:q.right,phase});}catch(e){}
+  }else if(isComplete){
+    try{conn.send({type:'sync_state',phase:'complete'});}catch(e){}
+  }
 }
 
 function generateQR(){
