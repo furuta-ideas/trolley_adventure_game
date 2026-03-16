@@ -174,6 +174,32 @@ let answering=false;  // ★ 回答受付中フラグ（question & race両フェ
 let correctCount=0;  // 正解数カウント
 let gameChannel=null;
 
+// ★ セッション永続化：アプリ終了/スリープからの復帰対策
+function saveSession(){
+  try{
+    sessionStorage.setItem('trivia-session',JSON.stringify({
+      myId, myName, myAnswers, currentQ, correctCount, currentLeft, currentRight
+    }));
+  }catch(e){}
+}
+function restoreSession(){
+  try{
+    const raw=sessionStorage.getItem('trivia-session');
+    if(!raw)return false;
+    const s=JSON.parse(raw);
+    if(s.myId&&s.myName){
+      myId=s.myId; myName=s.myName;
+      myAnswers=s.myAnswers||Array(TOTAL_Q).fill(null);
+      currentQ=s.currentQ||0;
+      correctCount=s.correctCount||0;
+      currentLeft=s.currentLeft||'';
+      currentRight=s.currentRight||'';
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
 try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleServerMsg(e.data); }catch(e){}
 
 // ★ localStorage polling（同一端末フォールバック）
@@ -259,6 +285,7 @@ function handleServerMsg(d){
   if(d.type==='game_init'){
     initPlayerState();
     showScreen('waiting');
+    saveSession();
     return;
   }
   if(d.type==='question'){
@@ -267,6 +294,7 @@ function handleServerMsg(d){
     // この問の回答をリセット（再出題に備え）
     myAnswers[currentQ]=null;
     showAnswerScreen(false);
+    saveSession();
   }
   if(d.type==='race_start'){
     answering=true;
@@ -276,9 +304,11 @@ function handleServerMsg(d){
   if(d.type==='result'){
     answering=false;
     showResult(d.correct);
+    saveSession();
   }
   if(d.type==='complete'){
     showCompleteScreen();
+    saveSession();
   }
 }
 
@@ -337,6 +367,7 @@ function joinGame(){
   initPlayerState(); // ★ 参加するたびに完全リセット
   document.getElementById('waiting-name').textContent=myName+' さん';
   showScreen('waiting');
+  saveSession();
   sendToHost({type:'join',id:myId,name:myName});
 }
 
@@ -373,6 +404,7 @@ function submitAnswer(choice){
   const chosen=choice==='left'?currentLeft:currentRight;
   document.getElementById('my-answer-display').textContent=(choice==='left'?'◀ ':' ▶ ')+chosen;
   sendToHost({type:'answer',id:myId,choice,q:currentQ});
+  saveSession();
   setTimeout(()=>showScreen('answered'),350);
 }
 
@@ -451,9 +483,19 @@ window.onload=()=>{
   // 起動時に前回の状態キャッシュをクリア
   try{ localStorage.removeItem('trivia-state'); }catch(e){}
   lastTs=0;
-  showScreen('splash');
-  // PeerJS接続をバックグラウンドで開始
-  initPeerConnection();
+
+  // ★ セッション復帰：アプリ終了/リロードからの自動復帰
+  if(restoreSession()){
+    // セッションがある → スプラッシュ/参加画面をスキップして待機画面へ
+    document.getElementById('waiting-name').textContent=myName+' さん';
+    showScreen('waiting');
+    // PeerJS接続して自動再参加
+    initPeerConnection();
+  }else{
+    showScreen('splash');
+    // PeerJS接続をバックグラウンドで開始
+    initPeerConnection();
+  }
 };
 </script>
 </body>
