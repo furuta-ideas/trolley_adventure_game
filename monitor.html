@@ -54,6 +54,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .start-race-btn:active{transform:translateX(-50%) scale(.97);}
 .reentry-btn{position:absolute;bottom:28px;left:18px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.4);color:#fff;font-family:'Noto Sans JP',sans-serif;font-weight:700;font-size:.9rem;padding:10px 24px;border-radius:50px;cursor:pointer;letter-spacing:1px;z-index:10;backdrop-filter:blur(4px);transition:all .2s;}
 .reentry-btn:hover{background:rgba(255,255,255,.3);transform:scale(1.05);}
+.mini-qr{position:absolute;top:10px;right:10px;width:80px;height:80px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;z-index:15;box-shadow:0 2px 12px rgba(0,0,0,.4);cursor:pointer;}
 
 /* ── RACE ── */
 #screen-race{display:none;height:100vh;position:relative;overflow:hidden;background:#000;}
@@ -164,6 +165,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   <div class="choice-names choice-names-left" id="choice-left-names" style="right:auto;width:45%;"></div>
   <div class="choice-names choice-names-right" id="choice-right-names" style="left:auto;width:45%;right:5%;"></div>
   <div class="answer-count" id="answer-count">📱 0人 回答済み</div>
+  <div class="mini-qr" id="mini-qr"></div>
   <button class="reentry-btn" onclick="resyncPlayers()">🔄 再エントリー</button>
   <button class="start-race-btn" onclick="startRace()">🚀 トロッコ　スタート！</button>
 </div>
@@ -280,10 +282,16 @@ function generateQR(){
   const url=baseUrl+'?room='+roomId;
   try{
     const qr=qrcode(0,'M'); qr.addData(url); qr.make();
+    // タイトル画面の大きなQR
     const box=document.getElementById('qr-box');
     box.innerHTML=qr.createImgTag(6,0);
     const img=box.querySelector('img');
     if(img) img.style.cssText='width:270px;height:270px;image-rendering:pixelated;';
+    // ★ 問題出題画面のミニQR（途中参加用）
+    const mini=document.getElementById('mini-qr');
+    mini.innerHTML=qr.createImgTag(2,0);
+    const mimg=mini.querySelector('img');
+    if(mimg) mimg.style.cssText='width:70px;height:70px;image-rendering:pixelated;border-radius:4px;';
   }catch(e){ console.warn('QR generation failed:',e); }
 }
 
