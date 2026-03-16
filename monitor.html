@@ -228,7 +228,7 @@ let raceAccepting=false;  // ★ トロッコ中も回答受付フラグ
 let raceTimerInterval=null, countdownVal=8;
 let gameChannel=null;
 
-try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleMsg(e.data); }catch(e){}
+try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleMsg(e.data,null); }catch(e){}
 
 // ══════════════════════════════════════════
 //  PeerJS — クロスデバイス通信
@@ -242,7 +242,7 @@ function initPeer(){
     peerInstance.on('open',()=>{ console.log('PeerJS ready, room:',roomId); generateQR(); });
     peerInstance.on('connection',(conn)=>{
       conn.on('open',()=>{ playerConns[conn.peer]=conn; });
-      conn.on('data',(data)=>{ handleMsg(data); });
+      conn.on('data',(data)=>{ handleMsg(data, conn); });
       conn.on('close',()=>{ delete playerConns[conn.peer]; });
     });
     peerInstance.on('error',(err)=>{ console.warn('PeerJS error:',err); generateQR(); });
@@ -270,7 +270,7 @@ function sendToPlayers(d){
   });
 }
 
-function handleMsg(d){
+function handleMsg(d, senderConn){
   if(d.type==='join'){
     // 再接続時は既存データを保持（名前・絵文字・回答を維持）
     if(participants[d.id]){
@@ -282,20 +282,33 @@ function handleMsg(d){
     }
     updateChips(); updateAnswerCount();
 
-    // ★ ゲーム進行中なら現在の問題を送信（途中参加・再参加対応）
+    // ★ ゲーム進行中なら現在の問題をこのプレイヤーだけに送信（途中参加・再参加対応）
     const qScreen=document.getElementById('screen-question');
     const rScreen=document.getElementById('screen-race');
     const aScreen=document.getElementById('screen-answer');
+    const cScreen=document.getElementById('screen-complete');
     const isInGame=qScreen.style.display!=='none'||rScreen.style.display!=='none'||aScreen.style.display!=='none';
+    const isComplete=cScreen.style.display!=='none';
+
+    // 個別送信用ヘルパー（senderConnがあればPeerJS直送、なければブロードキャスト）
+    const sendToJoiner=(msg)=>{
+      if(senderConn){try{senderConn.send(msg);}catch(e){}}
+      else{try{if(gameChannel)gameChannel.postMessage(msg);}catch(e){}}
+    };
+
     if(isInGame&&currentQ<QUESTIONS.length){
       const q=QUESTIONS[currentQ];
-      // 少し遅延して送信（PeerJS接続安定待ち）
-      setTimeout(()=>{
-        sendToPlayers({type:'question',q:currentQ,left:q.left,right:q.right});
+      // 少し遅延して送信（PeerJS接続安定待ち）+ リトライ
+      const sendState=()=>{
+        sendToJoiner({type:'question',q:currentQ,left:q.left,right:q.right});
         if(raceAccepting){
-          sendToPlayers({type:'race_start'});
+          sendToJoiner({type:'race_start'});
         }
-      },500);
+      };
+      setTimeout(sendState,300);
+      setTimeout(sendState,1500); // リトライ
+    }else if(isComplete){
+      setTimeout(()=>sendToJoiner({type:'complete'}),300);
     }
   }
   if(d.type==='answer'){
