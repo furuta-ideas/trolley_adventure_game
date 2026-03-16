@@ -37,7 +37,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .q-bg{position:absolute;inset:0;background:url('Select.jpg') center/cover no-repeat;}
 .q-track{display:none;}
 .q-number-badge{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:.95rem;padding:5px 22px;border-radius:30px;letter-spacing:3px;z-index:10;}
-.question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:2px 2px 0 #000;z-index:10;color:#333;padding:10px 16px;background:transparent;}
+.question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,0 0 8px rgba(255,255,255,.8);z-index:10;color:#333;padding:10px 16px;background:transparent;}
 .choice-left{position:absolute;left:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-right{position:absolute;right:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
@@ -47,7 +47,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .choice-names{position:absolute;top:5%;left:5%;right:5%;display:flex;flex-wrap:wrap;gap:5px;z-index:10;pointer-events:none;}
 .choice-names-left{justify-content:flex-start;}
 .choice-names-right{justify-content:flex-end;}
-.choice-name-chip{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;padding:10px 24px;border-radius:24px;font-size:6rem;font-weight:700;animation:chipIn .3s ease;backdrop-filter:blur(4px);}
+.choice-name-chip{background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.4);color:#fff;padding:6px 16px;border-radius:24px;font-size:1.8rem;font-weight:700;animation:chipIn .3s ease;backdrop-filter:blur(4px);}
 .answer-count{position:absolute;bottom:18px;right:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:9px 18px;font-size:1rem;z-index:10;}
 .start-race-btn{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.25rem;padding:14px 46px;border-radius:50px;cursor:pointer;letter-spacing:3px;box-shadow:0 8px 40px rgba(255,165,0,.6);z-index:10;animation:pulse-b 2s infinite;transition:transform .1s;}
 .start-race-btn:hover{transform:translateX(-50%) scale(1.05);}
@@ -170,7 +170,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   <video id="race-video" playsinline preload="auto" src="トロッコ動画.mp4"></video>
   <div class="race-ui">
     <div class="race-timer-box">
-      <span class="race-timer-num" id="race-timer-num">10</span>
+      <span class="race-timer-num" id="race-timer-num">8</span>
       <div class="race-timer-label">SECONDS</div>
     </div>
     <div class="race-accepting">📱 まだ回答できます！ 左か右を選ぼう</div>
@@ -225,7 +225,7 @@ const ANIMAL_EMOJIS=['🐶','🐱','🐻','🐼','🦊','🐸','🐵','🦁','�
 let animalIndex=0;
 let currentQ=0, participants={}, answeredCount=0;
 let raceAccepting=false;  // ★ トロッコ中も回答受付フラグ
-let raceTimerInterval=null, countdownVal=10;
+let raceTimerInterval=null, countdownVal=8;
 let gameChannel=null;
 
 try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleMsg(e.data); }catch(e){}
@@ -272,9 +272,14 @@ function sendToPlayers(d){
 
 function handleMsg(d){
   if(d.type==='join'){
-    const emoji=ANIMAL_EMOJIS[animalIndex % ANIMAL_EMOJIS.length];
-    animalIndex++;
-    participants[d.id]={name:d.name,emoji,answers:Array(QUESTIONS.length).fill(null)};
+    // 再接続時は既存データを保持（名前・絵文字・回答を維持）
+    if(participants[d.id]){
+      participants[d.id].name=d.name; // 名前だけ更新
+    }else{
+      const emoji=ANIMAL_EMOJIS[animalIndex % ANIMAL_EMOJIS.length];
+      animalIndex++;
+      participants[d.id]={name:d.name,emoji,answers:Array(QUESTIONS.length).fill(null)};
+    }
     updateChips(); updateAnswerCount();
   }
   if(d.type==='answer'){
@@ -410,7 +415,7 @@ function startRace(){
 
   sendToPlayers({type:'race_start'});
 
-  countdownVal=10;
+  countdownVal=8;
   document.getElementById('race-timer-num').textContent=countdownVal;
 
   raceTimerInterval=setInterval(()=>{
@@ -460,6 +465,7 @@ function nextQuestion(){
 function showComplete(){
   stopBGM();
   showScreen('complete');
+  playBGM('opening');
   sendToPlayers({type:'complete'});
 }
 
@@ -478,7 +484,7 @@ function initAllState(){
   currentQ=0;
   answeredCount=0;
   raceAccepting=false;
-  countdownVal=10;
+  countdownVal=8;
   participants={};
   animalIndex=0;
 
@@ -501,7 +507,7 @@ function initAllState(){
   if(nb) nb.style.display='none';
   document.getElementById('answer-count').textContent='📱 0人 回答済み';
   document.getElementById('race-ans-count').textContent='📱 0人 回答済み';
-  document.getElementById('race-timer-num').textContent='10';
+  document.getElementById('race-timer-num').textContent='8';
 
   // コンプリート画面の confetti/fireworks 残骸を除去
   document.getElementById('screen-complete').querySelectorAll('.confetti-piece,.firework').forEach(e=>e.remove());
@@ -549,6 +555,8 @@ audioSelect.loop=true;
 audioDrumroll.loop=false;
 let currentBGM=null;
 
+const audioSeikaiM=new Audio('seikai.mp3');
+
 function playBGM(type){
   stopBGM();
   if(type==='opening'){
@@ -573,7 +581,10 @@ function stopBGM(){
 }
 
 function playSound(type){
-  // brake sound no longer needed (removed Web Audio)
+  if(type==='result'){
+    audioSeikaiM.currentTime=0;
+    audioSeikaiM.play().catch(e=>console.warn('Audio play failed:',e));
+  }
 }
 
 // ══════════════════════════════════════════
