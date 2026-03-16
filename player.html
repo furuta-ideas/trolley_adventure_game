@@ -518,6 +518,18 @@ const audioSentaku=new Audio('sentaku.mp3');
 const audioSeikai=new Audio('seikai.mp3');
 const audioMachigai=new Audio('machigai.mp3');
 
+// ★ モバイルブラウザ対策：ユーザージェスチャー時にオーディオをアンロック
+let audioUnlocked=false;
+function unlockAudio(){
+  if(audioUnlocked)return;
+  audioUnlocked=true;
+  [audioSentaku,audioSeikai,audioMachigai].forEach(a=>{
+    a.volume=0; a.play().then(()=>{a.pause();a.currentTime=0;a.volume=1;}).catch(()=>{a.volume=1;});
+  });
+}
+document.addEventListener('click',unlockAudio,{once:true});
+document.addEventListener('touchstart',unlockAudio,{once:true});
+
 function playSentaku(){
   audioSentaku.currentTime=0;
   audioSentaku.play().catch(e=>console.warn('Audio play failed:',e));
