@@ -296,6 +296,21 @@ function handleServerMsg(d){
     showAnswerScreen(false);
     saveSession();
   }
+  // ★ 途中参加・再参加用：待機画面にいる場合のみ処理（既存プレイヤーの回答はリセットしない）
+  if(d.type==='sync_state'){
+    const waitingEl=document.getElementById('screen-waiting');
+    if(waitingEl.style.display!=='none'){
+      if(d.phase==='complete'){
+        showCompleteScreen();
+        saveSession();
+      }else if(d.q!==undefined){
+        currentQ=d.q; currentLeft=d.left; currentRight=d.right;
+        answering=d.phase!=='answer'; // answer judge中は回答不可
+        showAnswerScreen(d.phase==='race');
+        saveSession();
+      }
+    }
+  }
   if(d.type==='race_start'){
     answering=true;
     const alreadyAnswered=myAnswers[currentQ]!==null&&myAnswers[currentQ]!==undefined;
