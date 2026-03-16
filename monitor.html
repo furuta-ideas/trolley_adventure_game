@@ -194,7 +194,6 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   </div>
   <div class="answer-divider">
     <span class="vs-text">VS</span>
-    <div class="instruction-text">阿藤さん・糸島さんの発表を聞いて<br>正解の方を選んでください</div>
   </div>
   <div class="score-display" id="score-display"></div>
   <button class="next-btn" id="next-btn" onclick="nextQuestion()">次の問題へ →</button>
@@ -282,7 +281,8 @@ function handleMsg(d, senderConn){
     }
     updateChips(); updateAnswerCount();
 
-    // ★ ゲーム進行中なら現在の問題をこのプレイヤーだけに送信（途中参加・再参加対応）
+    // ★ ゲーム進行中なら sync_state をブロードキャスト（途中参加・再参加対応）
+    // 待機画面にいるプレイヤーのみが処理するので、既存プレイヤーの回答はリセットされない
     const qScreen=document.getElementById('screen-question');
     const rScreen=document.getElementById('screen-race');
     const aScreen=document.getElementById('screen-answer');
@@ -290,25 +290,29 @@ function handleMsg(d, senderConn){
     const isInGame=qScreen.style.display!=='none'||rScreen.style.display!=='none'||aScreen.style.display!=='none';
     const isComplete=cScreen.style.display!=='none';
 
-    // 個別送信用ヘルパー（senderConnがあればPeerJS直送、なければブロードキャスト）
-    const sendToJoiner=(msg)=>{
-      if(senderConn){try{senderConn.send(msg);}catch(e){}}
-      else{try{if(gameChannel)gameChannel.postMessage(msg);}catch(e){}}
-    };
-
     if(isInGame&&currentQ<QUESTIONS.length){
       const q=QUESTIONS[currentQ];
-      // 少し遅延して送信（PeerJS接続安定待ち）+ リトライ
-      const sendState=()=>{
-        sendToJoiner({type:'question',q:currentQ,left:q.left,right:q.right});
-        if(raceAccepting){
-          sendToJoiner({type:'race_start'});
-        }
+      const rVis=rScreen.style.display!=='none';
+      const aVis=aScreen.style.display!=='none';
+      const phase=rVis?'race':(aVis?'answer':'question');
+      const syncMsg={type:'sync_state',q:currentQ,left:q.left,right:q.right,phase};
+
+      // 直接送信 + ブロードキャスト を複数回リトライ（確実に届ける）
+      const trySend=()=>{
+        if(senderConn){try{senderConn.send(syncMsg);}catch(e){}}
+        sendToPlayers(syncMsg);
       };
-      setTimeout(sendState,300);
-      setTimeout(sendState,1500); // リトライ
+      setTimeout(trySend,300);
+      setTimeout(trySend,1500);
+      setTimeout(trySend,3500);
     }else if(isComplete){
-      setTimeout(()=>sendToJoiner({type:'complete'}),300);
+      const syncMsg={type:'sync_state',phase:'complete'};
+      const trySend=()=>{
+        if(senderConn){try{senderConn.send(syncMsg);}catch(e){}}
+        sendToPlayers(syncMsg);
+      };
+      setTimeout(trySend,300);
+      setTimeout(trySend,1500);
     }
   }
   if(d.type==='answer'){
