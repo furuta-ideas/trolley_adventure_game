@@ -244,7 +244,16 @@ function connectPeer(){
     peerInstance.on('open',()=>{
       reconnecting=false;
       const conn=peerInstance.connect('trolley-'+peerRoom);
+      // ★ 接続タイムアウト：5秒以内にopenしなければ強制リトライ
+      const connTimeout=setTimeout(()=>{
+        if(!peerConn){
+          console.log('Connection timeout, retrying...');
+          reconnecting=false;
+          connectPeer();
+        }
+      },5000);
       conn.on('open',()=>{
+        clearTimeout(connTimeout);
         peerConn=conn;
         console.log('PeerJS connected to monitor');
         // 再接続時に自動再参加
@@ -252,9 +261,14 @@ function connectPeer(){
           sendToHost({type:'join',id:myId,name:myName});
         }
       });
-      conn.on('data',(data)=>{ handleServerMsg(data); });
+      conn.on('data',(data)=>{
+        clearTimeout(connTimeout);
+        // ★ データ受信=接続確立済みなのでpeerConnを確実にセット
+        if(!peerConn) peerConn=conn;
+        handleServerMsg(data);
+      });
       conn.on('close',()=>{ peerConn=null; console.log('PeerJS connection closed'); });
-      conn.on('error',(err)=>{ console.warn('PeerJS conn error:',err); peerConn=null; });
+      conn.on('error',(err)=>{ console.warn('PeerJS conn error:',err); clearTimeout(connTimeout); peerConn=null; });
     });
     peerInstance.on('error',(err)=>{
       console.warn('PeerJS error:',err);
@@ -310,6 +324,10 @@ function handleServerMsg(d){
         answering=d.phase!=='answer'; // answer judge中は回答不可
         showAnswerScreen(d.phase==='race');
         saveSession();
+      }
+      // ★ 遷移成功後、モニターに自分を登録（参加者リストに追加されるように）
+      if(myId&&myName){
+        sendToHost({type:'join',id:myId,name:myName});
       }
     }
   }
@@ -400,6 +418,8 @@ function startJoinRetry(){
     }
     // まだ待機中 → 接続確認＆再送信
     if(!peerConn||!peerInstance||peerInstance.disconnected||peerInstance.destroyed){
+      // ★ reconnecting フラグが固着していたら強制リセット
+      reconnecting=false;
       connectPeer(); // 再接続
     }else{
       sendToHost({type:'join',id:myId,name:myName});
