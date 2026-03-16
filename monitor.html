@@ -37,7 +37,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .q-bg{position:absolute;inset:0;background:url('Select.jpg') center/cover no-repeat;}
 .q-track{display:none;}
 .q-number-badge{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:.95rem;padding:5px 22px;border-radius:30px;letter-spacing:3px;z-index:10;}
-.question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.4rem,2.5vw,2.4rem);line-height:1.3;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,0 0 8px rgba(255,255,255,.8);z-index:10;color:#333;padding:10px 16px;background:transparent;}
+.question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(2.8rem,5vw,4.8rem);line-height:1.3;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,0 0 8px rgba(255,255,255,.8);z-index:10;color:#333;padding:10px 16px;background:transparent;}
 .choice-left{position:absolute;left:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-right{position:absolute;right:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
@@ -281,6 +281,22 @@ function handleMsg(d){
       participants[d.id]={name:d.name,emoji,answers:Array(QUESTIONS.length).fill(null)};
     }
     updateChips(); updateAnswerCount();
+
+    // ★ ゲーム進行中なら現在の問題を送信（途中参加・再参加対応）
+    const qScreen=document.getElementById('screen-question');
+    const rScreen=document.getElementById('screen-race');
+    const aScreen=document.getElementById('screen-answer');
+    const isInGame=qScreen.style.display!=='none'||rScreen.style.display!=='none'||aScreen.style.display!=='none';
+    if(isInGame&&currentQ<QUESTIONS.length){
+      const q=QUESTIONS[currentQ];
+      // 少し遅延して送信（PeerJS接続安定待ち）
+      setTimeout(()=>{
+        sendToPlayers({type:'question',q:currentQ,left:q.left,right:q.right});
+        if(raceAccepting){
+          sendToPlayers({type:'race_start'});
+        }
+      },500);
+    }
   }
   if(d.type==='answer'){
     // ★ question画面中 OR raceAccepting中のみ受け付け
