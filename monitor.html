@@ -465,6 +465,7 @@ function nextQuestion(){
 function showComplete(){
   stopBGM();
   showScreen('complete');
+  playBGM('opening');
   sendToPlayers({type:'complete'});
 }
 
@@ -554,6 +555,8 @@ audioSelect.loop=true;
 audioDrumroll.loop=false;
 let currentBGM=null;
 
+const audioSeikaiM=new Audio('seikai.mp3');
+
 function playBGM(type){
   stopBGM();
   if(type==='opening'){
@@ -578,7 +581,10 @@ function stopBGM(){
 }
 
 function playSound(type){
-  // brake sound no longer needed (removed Web Audio)
+  if(type==='result'){
+    audioSeikaiM.currentTime=0;
+    audioSeikaiM.play().catch(e=>console.warn('Audio play failed:',e));
+  }
 }
 
 // ══════════════════════════════════════════
