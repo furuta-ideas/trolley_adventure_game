@@ -357,6 +357,7 @@ function exitSplash(){
   showScreen('join');
 }
 
+let joinRetryTimer=null;
 function joinGame(){
   const inp=document.getElementById('name-input');
   const name=inp.value.trim();
@@ -369,6 +370,24 @@ function joinGame(){
   showScreen('waiting');
   saveSession();
   sendToHost({type:'join',id:myId,name:myName});
+  // ★ 待機画面に留まっている場合、定期的にjoinを再送信（途中参加対応）
+  startJoinRetry();
+}
+function startJoinRetry(){
+  if(joinRetryTimer) clearInterval(joinRetryTimer);
+  joinRetryTimer=setInterval(()=>{
+    const waitingVisible=document.getElementById('screen-waiting').style.display!=='none';
+    if(!waitingVisible){
+      // 待機画面を抜けた → リトライ停止
+      clearInterval(joinRetryTimer); joinRetryTimer=null; return;
+    }
+    // まだ待機中 → 接続確認＆再送信
+    if(!peerConn||!peerInstance||peerInstance.disconnected||peerInstance.destroyed){
+      connectPeer(); // 再接続
+    }else{
+      sendToHost({type:'join',id:myId,name:myName});
+    }
+  },3000);
 }
 
 function showAnswerScreen(raceMode){
@@ -491,6 +510,7 @@ window.onload=()=>{
     showScreen('waiting');
     // PeerJS接続して自動再参加
     initPeerConnection();
+    startJoinRetry(); // 待機画面に留まる場合のリトライ
   }else{
     showScreen('splash');
     // PeerJS接続をバックグラウンドで開始
