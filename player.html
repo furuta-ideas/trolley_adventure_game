@@ -415,10 +415,10 @@ function showResult(correct){
   if(ok) correctCount++;
   const screen=document.getElementById('screen-result');
   screen.className=ok?'result-correct':'result-wrong';
-  document.getElementById('result-mark').textContent=ok?'⚪':'✕';
-  document.getElementById('result-text').textContent=ok?'正解！':'不正解…';
-  document.getElementById('result-text').className='result-text '+(ok?'result-correct-txt':'result-wrong-txt');
-  document.getElementById('result-sub').textContent=ok?'🎉 やったね！次の問題を待とう':'💪 次は頑張ろう！';
+  document.getElementById('result-mark').textContent='';
+  document.getElementById('result-text').textContent='';
+  document.getElementById('result-text').className='result-text';
+  document.getElementById('result-sub').textContent='';
   showScreen('result');
   playResultSound(ok);
 }
