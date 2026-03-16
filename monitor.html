@@ -228,6 +228,7 @@ let animalIndex=0;
 let currentQ=0, participants={}, answeredCount=0;
 let raceAccepting=false;  // ★ トロッコ中も回答受付フラグ
 let raceTimerInterval=null, countdownVal=8;
+let gamePhase='lobby'; // ★ lobby|rule|question|race|answer|complete
 let gameChannel=null;
 
 try{ gameChannel=new BroadcastChannel('trivia-battle'); gameChannel.onmessage=e=>handleMsg(e.data,null); }catch(e){}
@@ -245,11 +246,10 @@ function initPeer(){
     peerInstance.on('connection',(conn)=>{
       conn.on('open',()=>{
         playerConns[conn.peer]=conn;
-        // ★ 接続確立時にゲーム進行中なら即座にsync_stateを送信
-        sendCurrentStateToConn(conn);
+        // ★ 接続確立時に現在のゲーム状態を即送信
+        sendSyncToConn(conn);
       });
       conn.on('data',(data)=>{
-        // ★ data受信時にもplayerConnsに登録（openより先にdataが届く場合の保険）
         if(!playerConns[conn.peer]) playerConns[conn.peer]=conn;
         handleMsg(data, conn);
       });
@@ -259,23 +259,20 @@ function initPeer(){
   }catch(e){ console.warn('PeerJS unavailable:',e); generateQR(); }
 }
 
-// ★ 特定コネクションに現在のゲーム状態を送信（途中参加即時同期用）
-function sendCurrentStateToConn(conn){
-  const qScreen=document.getElementById('screen-question');
-  const rScreen=document.getElementById('screen-race');
-  const aScreen=document.getElementById('screen-answer');
-  const cScreen=document.getElementById('screen-complete');
-  const isInGame=qScreen.style.display!=='none'||rScreen.style.display!=='none'||aScreen.style.display!=='none';
-  const isComplete=cScreen.style.display!=='none';
-  if(isInGame&&currentQ<QUESTIONS.length){
+// ★ 現在のゲーム状態メッセージを生成（gamePhase変数ベース・DOM検査不要）
+function getGameState(){
+  if((gamePhase==='question'||gamePhase==='race'||gamePhase==='answer')&&currentQ<QUESTIONS.length){
     const q=QUESTIONS[currentQ];
-    const rVis=rScreen.style.display!=='none';
-    const aVis=aScreen.style.display!=='none';
-    const phase=rVis?'race':(aVis?'answer':'question');
-    try{conn.send({type:'sync_state',q:currentQ,left:q.left,right:q.right,phase});}catch(e){}
-  }else if(isComplete){
-    try{conn.send({type:'sync_state',phase:'complete'});}catch(e){}
+    return {type:'sync_state',q:currentQ,left:q.left,right:q.right,phase:gamePhase};
   }
+  if(gamePhase==='complete') return {type:'sync_state',phase:'complete'};
+  return null; // lobby/rule → プレイヤーは待機のまま（question開始時にbroadcastされる）
+}
+
+// ★ 特定コネクションにゲーム状態を送信
+function sendSyncToConn(conn){
+  const msg=getGameState();
+  if(msg){try{conn.send(msg);}catch(e){}}
 }
 
 function generateQR(){
@@ -301,9 +298,8 @@ function sendToPlayers(d){
 
 function handleMsg(d, senderConn){
   if(d.type==='join'){
-    // 再接続時は既存データを保持（名前・絵文字・回答を維持）
     if(participants[d.id]){
-      participants[d.id].name=d.name; // 名前だけ更新
+      participants[d.id].name=d.name;
     }else{
       const emoji=ANIMAL_EMOJIS[animalIndex % ANIMAL_EMOJIS.length];
       animalIndex++;
@@ -311,44 +307,19 @@ function handleMsg(d, senderConn){
     }
     updateChips(); updateAnswerCount();
 
-    // ★ ゲーム進行中なら sync_state をブロードキャスト（途中参加・再参加対応）
-    // 待機画面にいるプレイヤーのみが処理するので、既存プレイヤーの回答はリセットされない
-    const qScreen=document.getElementById('screen-question');
-    const rScreen=document.getElementById('screen-race');
-    const aScreen=document.getElementById('screen-answer');
-    const cScreen=document.getElementById('screen-complete');
-    const isInGame=qScreen.style.display!=='none'||rScreen.style.display!=='none'||aScreen.style.display!=='none';
-    const isComplete=cScreen.style.display!=='none';
-
-    if(isInGame&&currentQ<QUESTIONS.length){
-      const q=QUESTIONS[currentQ];
-      const rVis=rScreen.style.display!=='none';
-      const aVis=aScreen.style.display!=='none';
-      const phase=rVis?'race':(aVis?'answer':'question');
-      const syncMsg={type:'sync_state',q:currentQ,left:q.left,right:q.right,phase};
-
-      // 直接送信 + ブロードキャスト を複数回リトライ（確実に届ける）
+    // ★ ゲーム状態を即送信（gamePhaseベース・どの画面でも対応）
+    const msg=getGameState();
+    if(msg){
       const trySend=()=>{
-        if(senderConn){try{senderConn.send(syncMsg);}catch(e){}}
-        sendToPlayers(syncMsg);
-      };
-      setTimeout(trySend,300);
-      setTimeout(trySend,1500);
-      setTimeout(trySend,3500);
-    }else if(isComplete){
-      const syncMsg={type:'sync_state',phase:'complete'};
-      const trySend=()=>{
-        if(senderConn){try{senderConn.send(syncMsg);}catch(e){}}
-        sendToPlayers(syncMsg);
+        if(senderConn){try{senderConn.send(msg);}catch(e){}}
+        sendToPlayers(msg);
       };
       setTimeout(trySend,300);
       setTimeout(trySend,1500);
     }
   }
   if(d.type==='answer'){
-    // ★ question画面中 OR raceAccepting中のみ受け付け
-    const qVisible=document.getElementById('screen-question').style.display!=='none';
-    if((qVisible||raceAccepting)&&participants[d.id]){
+    if((gamePhase==='question'||raceAccepting)&&participants[d.id]){
       participants[d.id].answers[currentQ]=d.choice;
       updateAnswerCount();
     }
@@ -416,11 +387,13 @@ function startGame(){
 
   sendToPlayers({type:'game_init'}); // player側キャッシュ上書き
 
+  gamePhase='rule';
   showScreen('rule');
 }
 
 function startFirstQuestion(){
-  stopBGM(); // オープニングBGM停止
+  stopBGM();
+  gamePhase='question';
   loadQuestion();
   showScreen('question');
   sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right});
@@ -460,22 +433,20 @@ function loadQuestion(){
 }
 
 function resyncPlayers(){
-  // 待機画面で止まっているプレイヤーに現在の問題を再送信
-  if(currentQ<QUESTIONS.length){
-    const q=QUESTIONS[currentQ];
-    const syncMsg={type:'sync_state',q:currentQ,left:q.left,right:q.right,phase:'question'};
-    sendToPlayers(syncMsg);
-    // 再送リトライ
-    setTimeout(()=>sendToPlayers(syncMsg),1000);
-    setTimeout(()=>sendToPlayers(syncMsg),2500);
+  const msg=getGameState();
+  if(msg){
+    sendToPlayers(msg);
+    setTimeout(()=>sendToPlayers(msg),1000);
+    setTimeout(()=>sendToPlayers(msg),2500);
   }
 }
 
 function startRace(){
   if(raceTimerInterval){ clearInterval(raceTimerInterval); raceTimerInterval=null; }
 
-  stopBGM(); // select_gamen BGM停止
+  stopBGM();
   raceAccepting=true;
+  gamePhase='race';
   showScreen('race');
 
   // 動画を再生（音声付き）
@@ -499,7 +470,7 @@ function startRace(){
     if(countdownVal<=0){
       clearInterval(raceTimerInterval); raceTimerInterval=null;
       raceAccepting=false;
-      // 動画を停止
+      gamePhase='answer';
       const v=document.getElementById('race-video');
       v.pause();
       stopBGM();
@@ -531,6 +502,7 @@ function judgeAnswer(side){
 function nextQuestion(){
   currentQ++;
   if(currentQ>=QUESTIONS.length){showComplete();return;}
+  gamePhase='question';
   loadQuestion();
   showScreen('question');
   sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right});
@@ -539,6 +511,7 @@ function nextQuestion(){
 
 function showComplete(){
   stopBGM();
+  gamePhase='complete';
   showScreen('complete');
   playBGM('opening');
   sendToPlayers({type:'complete'});
@@ -546,6 +519,7 @@ function showComplete(){
 
 function restartGame(){
   initAllState();
+  gamePhase='lobby';
   updateChips();
   showScreen('title');
 }
@@ -560,6 +534,7 @@ function initAllState(){
   answeredCount=0;
   raceAccepting=false;
   countdownVal=8;
+  gamePhase='lobby';
   participants={};
   animalIndex=0;
 
