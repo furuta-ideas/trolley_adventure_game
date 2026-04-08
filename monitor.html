@@ -45,10 +45,10 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .q-track{display:none;}
 .q-number-badge{position:absolute;top:5%;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;font-weight:900;font-size:.95rem;padding:5px 22px;border-radius:30px;letter-spacing:3px;z-index:10;}
 .question-text{position:absolute;top:15%;left:50%;transform:translateX(-50%);width:34%;text-align:center;font-weight:900;font-size:clamp(1.5rem,3.0vw,3rem);line-height:1.3;text-shadow:1px 1px 0 #fff,-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,0 0 8px rgba(255,255,255,.8);z-index:10;color:#333;padding:10px 16px;background:transparent;}
-.choice-left{position:absolute;left:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
-.choice-right{position:absolute;right:5%;top:30%;width:38%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
+.choice-left{position:absolute;left:2%;top:30%;width:45%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
+.choice-right{position:absolute;right:2%;top:30%;width:45%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
-.choice-text{font-weight:900;font-size:clamp(2rem,3.8vw,3.8rem);text-shadow:2px 2px 4px rgba(0,0,0,.8),0 0 20px rgba(0,0,0,.5);line-height:1.2;color:#fff;}
+.choice-text{font-weight:900;font-size:clamp(1.5rem,3vw,3rem);text-shadow:2px 2px 4px rgba(0,0,0,.8),0 0 20px rgba(0,0,0,.5);line-height:1.2;color:#fff;white-space:nowrap;}
 .choice-arrow-l,.choice-arrow-r{display:none;}
 .trolley-idle{display:none;}
 .choice-names{position:absolute;top:5%;left:5%;right:5%;display:flex;flex-wrap:wrap;gap:5px;z-index:10;pointer-events:none;}
@@ -173,8 +173,8 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
   <div class="choice-right">
     <div class="choice-text" id="choice-right-text">右</div>
   </div>
-  <div class="choice-names choice-names-left" id="choice-left-names" style="right:auto;width:45%;"></div>
-  <div class="choice-names choice-names-right" id="choice-right-names" style="left:auto;width:45%;right:5%;"></div>
+  <div class="choice-names choice-names-left" id="choice-left-names" style="right:auto;width:47%;"></div>
+  <div class="choice-names choice-names-right" id="choice-right-names" style="left:auto;width:47%;right:2%;"></div>
   <div class="answer-count" id="answer-count">📱 0人 回答済み</div>
   <div class="mini-qr" id="mini-qr"></div>
   <button class="reentry-btn" onclick="resyncPlayers()">🔄 再エントリー</button>
@@ -447,6 +447,17 @@ function startFirstQuestion(){
   playBGM('select');
 }
 
+function adjustChoiceFont(elId,text){
+  const el=document.getElementById(elId);
+  const len=text.length;
+  if(len<=15){
+    el.style.fontSize='';
+  }else{
+    const r=15/len;
+    el.style.fontSize=`clamp(${(1.5*r).toFixed(2)}rem,${(3*r).toFixed(2)}vw,${(3*r).toFixed(2)}rem)`;
+  }
+}
+
 function loadQuestion(){
   const q=QUESTIONS[currentQ];
   raceAccepting=false;
@@ -454,6 +465,8 @@ function loadQuestion(){
   document.getElementById('question-text').textContent=q.question;
   document.getElementById('choice-left-text').textContent=q.left;
   document.getElementById('choice-right-text').textContent=q.right;
+  adjustChoiceFont('choice-left-text',q.left);
+  adjustChoiceFont('choice-right-text',q.right);
   document.getElementById('answer-left-text').textContent=q.left;
   document.getElementById('answer-right-text').textContent=q.right;
   answeredCount=0;
