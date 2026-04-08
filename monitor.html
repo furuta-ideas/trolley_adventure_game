@@ -48,7 +48,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .choice-left{position:absolute;left:2%;top:30%;width:45%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-right{position:absolute;right:2%;top:30%;width:45%;height:25%;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;text-align:center;}
 .choice-label{display:none;}
-.choice-text{font-weight:900;font-size:clamp(1.5rem,3vw,3rem);text-shadow:2px 2px 4px rgba(0,0,0,.8),0 0 20px rgba(0,0,0,.5);line-height:1.2;color:#fff;white-space:nowrap;}
+.choice-text{font-weight:900;font-size:clamp(1.1rem,2.2vw,2.2rem);text-shadow:2px 2px 4px rgba(0,0,0,.8),0 0 20px rgba(0,0,0,.5);line-height:1.2;color:#fff;white-space:nowrap;}
 .choice-arrow-l,.choice-arrow-r{display:none;}
 .trolley-idle{display:none;}
 .choice-names{position:absolute;top:5%;left:5%;right:5%;display:flex;flex-wrap:wrap;gap:5px;z-index:10;pointer-events:none;}
@@ -454,7 +454,7 @@ function adjustChoiceFont(elId,text){
     el.style.fontSize='';
   }else{
     const r=15/len;
-    el.style.fontSize=`clamp(${(1.5*r).toFixed(2)}rem,${(3*r).toFixed(2)}vw,${(3*r).toFixed(2)}rem)`;
+    el.style.fontSize=`clamp(${(1.1*r).toFixed(2)}rem,${(2.2*r).toFixed(2)}vw,${(2.2*r).toFixed(2)}rem)`;
   }
 }
 
