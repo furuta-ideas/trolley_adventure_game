@@ -121,7 +121,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;hei
 
 <!-- ANSWER (問題表示中 + レース中も有効) -->
 <div id="screen-answer" style="display:none;">
-  <div class="q-info" id="q-info">第1問 / 全6問</div>
+  <div class="q-info" id="q-info">第1問 / 全8問</div>
   <div class="race-mode-banner" id="race-banner" style="display:none;">🚃 トロッコ走行中！今すぐ回答を！</div>
   <button class="choice-left-btn" onclick="submitAnswer('left')" id="btn-left">
     <div class="btn-direction">◀ ひだり</div>
@@ -160,7 +160,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;hei
   <div class="complete-title-sm">ゲーム終了！</div>
   <div class="score-box">
     <div class="score-big" id="final-score">0</div>
-    <div class="score-lbl" id="score-lbl">/ 6問 正解</div>
+    <div class="score-lbl" id="score-lbl">/ 8問 正解</div>
   </div>
   <div class="perfect-msg" id="perfect-msg">🌟 全問正解！ 🌟</div>
 </div>
@@ -169,7 +169,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;hei
 // ══════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════
-const TOTAL_Q=6;
+let TOTAL_Q=8;
 let myId=null, myName='', myAnswers=[], currentQ=0;
 let currentLeft='', currentRight='';
 let answering=false;  // ★ 回答受付中フラグ（question & race両フェーズで true）
@@ -299,12 +299,14 @@ document.addEventListener('visibilitychange',()=>{
 function handleServerMsg(d){
   // ★ ゲーム初期化シグナル：player側を完全リセット
   if(d.type==='game_init'){
+    if(d.totalQ) TOTAL_Q=d.totalQ;
     initPlayerState();
     showScreen('waiting');
     saveSession();
     return;
   }
   if(d.type==='question'){
+    if(d.totalQ) TOTAL_Q=d.totalQ;
     currentQ=d.q; currentLeft=d.left; currentRight=d.right;
     answering=true;
     // この問の回答をリセット（再出題に備え）
@@ -314,6 +316,7 @@ function handleServerMsg(d){
   }
   // ★ 途中参加・再参加用：待機画面にいる場合のみ処理（既存プレイヤーの回答はリセットしない）
   if(d.type==='sync_state'){
+    if(d.totalQ) TOTAL_Q=d.totalQ;
     const waitingEl=document.getElementById('screen-waiting');
     if(waitingEl.style.display!=='none'){
       if(d.phase==='complete'){
@@ -489,7 +492,7 @@ function showCompleteScreen(){
     spawnSmallConfetti();
   }else{
     document.getElementById('perfect-msg').style.display='none';
-    document.getElementById('complete-icon').textContent=correctCount>=4?'🎖️':'🎮';
+    document.getElementById('complete-icon').textContent=correctCount>=Math.ceil(TOTAL_Q/2)?'🎖️':'🎮';
   }
   showScreen('complete');
 }
