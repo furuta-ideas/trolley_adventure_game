@@ -27,6 +27,13 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 .start-btn{background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border:none;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.4rem;padding:16px 56px;border-radius:50px;cursor:pointer;letter-spacing:4px;box-shadow:0 8px 40px rgba(255,165,0,.6);transition:all .2s;}
 .start-btn:hover{transform:scale(1.05) translateY(-3px);}
 .start-btn:active{transform:scale(.97);}
+.start-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+
+/* ── MODE SELECT ── */
+.mode-select{position:absolute;bottom:28px;right:28px;display:flex;flex-direction:column;gap:12px;z-index:10;}
+.mode-btn{background:rgba(255,255,255,.08);border:2px solid rgba(255,215,0,.4);color:#fff;font-family:'Noto Sans JP',sans-serif;font-weight:900;font-size:1.1rem;padding:14px 28px;border-radius:50px;cursor:pointer;letter-spacing:2px;transition:all .2s;backdrop-filter:blur(4px);}
+.mode-btn:hover{background:rgba(255,215,0,.15);border-color:var(--gold);transform:scale(1.05);}
+.mode-btn.active{background:linear-gradient(135deg,#FFD700,#FF6B00);color:#000;border-color:transparent;box-shadow:0 4px 20px rgba(255,165,0,.5);}
 
 /* ── RULE ── */
 #screen-rule{display:none;height:100vh;position:relative;cursor:pointer;background:#0A0A1A;}
@@ -142,7 +149,11 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
       <span style="color:rgba(255,255,255,.35);font-size:.85rem;">参加者が接続すると<br>表示されます</span>
     </div>
   </div>
-  <button class="start-btn" onclick="startGame()">▶ ゲームスタート</button>
+  <button class="start-btn" id="start-btn" onclick="startGame()" disabled>▶ ゲームスタート</button>
+  <div class="mode-select">
+    <button class="mode-btn" id="btn-mode-ato" onclick="selectMode('ato')">🎯 阿藤さんモード</button>
+    <button class="mode-btn" id="btn-mode-ito" onclick="selectMode('ito')">🎯 糸島さんモード</button>
+  </div>
 </div>
 
 <!-- RULE -->
@@ -154,7 +165,7 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 <div id="screen-question">
   <div class="q-bg"></div>
   <div class="q-track"></div>
-  <div class="q-number-badge" id="q-number-badge">第1問 / 全6問</div>
+  <div class="q-number-badge" id="q-number-badge">第1問 / 全8問</div>
   <div class="question-text" id="question-text">問題文</div>
   <div class="choice-left">
     <div class="choice-text" id="choice-left-text">左</div>
@@ -213,14 +224,28 @@ body{background:var(--dark);color:#fff;font-family:'Noto Sans JP',sans-serif;ove
 // ══════════════════════════════════════════
 //  GAME DATA
 // ══════════════════════════════════════════
-const QUESTIONS=[
-  {id:1,question:"阿藤さんの出身は？",left:"沖縄",right:"千葉",answer:"left"},
-  {id:2,question:"糸島さんの高校時代は？",left:"女子校",right:"普通校",answer:"right"},
-  {id:3,question:"阿藤さんの趣味は？",left:"釣り",right:"ゴルフ",answer:"right"},
-  {id:4,question:"糸島さんが好きな食べ物は？",left:"ラーメン",right:"寿司",answer:"left"},
-  {id:5,question:"阿藤さんが社会人になって最初に買ったものは？",left:"バイク",right:"パソコン",answer:"left"},
-  {id:6,question:"糸島さんの特技は？",left:"料理",right:"ダンス",answer:"right"}
+const QUESTIONS_ATO=[
+  {id:1,question:"高校生の頃の一番の思い出は？",left:"マラソン大会２連覇",right:"ストリートバスケ２連覇",answer:"right"},
+  {id:2,question:"これまでUDCKで一番の思い出は？",left:"KOILカラオケ大会",right:"KOIL卓球大会",answer:"left"},
+  {id:3,question:"\"実は自慢\"私の特技は？",left:"積算",right:"企画",answer:"left"},
+  {id:4,question:"一番テンションが上がる業務は？",left:"コンソの運営",right:"農あるまちづくり",answer:"right"},
+  {id:5,question:"残業時、実はしていたヒミツは？",left:"踊っていた",right:"歌っていた",answer:"right"},
+  {id:6,question:"UDCKで一番ヒヤッとしたことは？",left:"東大ホールの有償化",right:"スタッフトークで頭が真っ白",answer:"left"},
+  {id:7,question:"忘れられない参加者の\"一言\"は？",left:"ぎっくり腰になりました",right:"指切って血が止まらないです",answer:"right"},
+  {id:8,question:"今後の人生で一番やりたいことは？",left:"旅をする",right:"食べ歩き",answer:"left"}
 ];
+const QUESTIONS_ITO=[
+  {id:1,question:"子どもの頃のあだ名は？（由来も）",left:"りんご",right:"みかん",answer:"left"},
+  {id:2,question:"これまでUDCKで一番の思い出は？",left:"KOIL卓球大会",right:"KOILカラオケ大会",answer:"right"},
+  {id:3,question:"\"実は自慢\"私の特技は？",left:"誤字脱字の発見",right:"半角全角の発見",answer:"right"},
+  {id:4,question:"本当に集中したいときはどっち？",left:"UDCKに行かない",right:"UDCKに行く",answer:"left"},
+  {id:5,question:"直したいと思いつつ直っていない癖は？",left:"メールでも関西弁",right:"メールに話しかける",answer:"right"},
+  {id:6,question:"UDCKで一番ヒヤッとしたことは？",left:"会場をダブルブッキング",right:"日付を間違えた",answer:"left"},
+  {id:7,question:"今後の人生で一番やりたいことは？",left:"スカイダイビング",right:"スキューバダイビング",answer:"left"},
+  {id:8,question:"忘れられない参加者の\"一言\"は？",left:"次も絶対参加する！",right:"もっと早くこの企画やってほしかった！",answer:"right"}
+];
+let QUESTIONS=[];
+let gameMode=null;
 
 // ══════════════════════════════════════════
 //  STATE
@@ -265,7 +290,7 @@ function initPeer(){
 function getGameState(){
   if((gamePhase==='question'||gamePhase==='race'||gamePhase==='answer')&&currentQ<QUESTIONS.length){
     const q=QUESTIONS[currentQ];
-    return {type:'sync_state',q:currentQ,left:q.left,right:q.right,phase:gamePhase};
+    return {type:'sync_state',q:currentQ,left:q.left,right:q.right,phase:gamePhase,totalQ:QUESTIONS.length};
   }
   if(gamePhase==='complete') return {type:'sync_state',phase:'complete'};
   return null; // lobby/rule → プレイヤーは待機のまま（question開始時にbroadcastされる）
@@ -383,7 +408,21 @@ function exitSplash(){
 // ══════════════════════════════════════════
 //  GAME FLOW
 // ══════════════════════════════════════════
+function selectMode(mode){
+  if(mode==='ato'){
+    QUESTIONS=QUESTIONS_ATO;
+    gameMode='ato';
+  }else{
+    QUESTIONS=QUESTIONS_ITO;
+    gameMode='ito';
+  }
+  document.getElementById('btn-mode-ato').className='mode-btn'+(mode==='ato'?' active':'');
+  document.getElementById('btn-mode-ito').className='mode-btn'+(mode==='ito'?' active':'');
+  document.getElementById('start-btn').disabled=false;
+}
+
 function startGame(){
+  if(!gameMode){return;}
   // 参加者リストを保持しつつ全状態を初期化（BGMは継続）
   const savedBGM=currentBGM;
   currentBGM=null; // initAllState内のstopBGMをスキップ
@@ -393,7 +432,7 @@ function startGame(){
   participants = savedParticipants;
   Object.values(participants).forEach(p=>{ p.answers=Array(QUESTIONS.length).fill(null); });
 
-  sendToPlayers({type:'game_init'}); // player側キャッシュ上書き
+  sendToPlayers({type:'game_init',totalQ:QUESTIONS.length}); // player側キャッシュ上書き
 
   gamePhase='rule';
   showScreen('rule');
@@ -404,7 +443,7 @@ function startFirstQuestion(){
   gamePhase='question';
   loadQuestion();
   showScreen('question');
-  sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right});
+  sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right,totalQ:QUESTIONS.length});
   playBGM('select');
 }
 
@@ -513,7 +552,7 @@ function nextQuestion(){
   gamePhase='question';
   loadQuestion();
   showScreen('question');
-  sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right});
+  sendToPlayers({type:'question',q:currentQ,left:QUESTIONS[currentQ].left,right:QUESTIONS[currentQ].right,totalQ:QUESTIONS.length});
   playBGM('select');
 }
 
@@ -528,6 +567,11 @@ function showComplete(){
 function restartGame(){
   initAllState();
   gamePhase='lobby';
+  gameMode=null;
+  QUESTIONS=[];
+  document.getElementById('btn-mode-ato').className='mode-btn';
+  document.getElementById('btn-mode-ito').className='mode-btn';
+  document.getElementById('start-btn').disabled=true;
   updateChips();
   showScreen('title');
 }
